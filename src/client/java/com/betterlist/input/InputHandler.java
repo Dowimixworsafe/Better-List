@@ -109,11 +109,11 @@ public class InputHandler implements IKeybindProvider, IHotkeyCallback {
         if (key == ModConfig.RELOAD_LIST.getKeybind()) {
             // If the BML screen is NOT open, ignore this key entirely.
             // This keeps reload from firing in the background during normal play.
-            if (!(Minecraft.getInstance().screen instanceof GuiBetterMaterialList)) {
+            if (!(Minecraft.getInstance().gui.screen() instanceof GuiBetterMaterialList)) {
                 return false;
             }
 
-            GuiBetterMaterialList currentGui = (GuiBetterMaterialList) Minecraft.getInstance().screen;
+            GuiBetterMaterialList currentGui = (GuiBetterMaterialList) Minecraft.getInstance().gui.screen();
 
             // If the player clicked the search bar and wants to type e.g. "dirt",
             // pass the "r" through to the bar and do NOT reload the list.

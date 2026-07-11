@@ -212,9 +212,9 @@ public class PartyManager {
 
     private static void refreshGui() {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.screen instanceof com.betterlist.gui.GuiParty currentGui) {
+        if (mc.gui.screen() instanceof com.betterlist.gui.GuiParty currentGui) {
             String pName = currentGui.getPlacementName();
-            mc.execute(() -> mc.setScreen(new com.betterlist.gui.GuiParty(pName)));
+            mc.execute(() -> mc.gui.setScreen(new com.betterlist.gui.GuiParty(pName)));
         }
     }
 

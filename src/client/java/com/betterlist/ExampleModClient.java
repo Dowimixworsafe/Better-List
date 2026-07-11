@@ -203,7 +203,7 @@ public class ExampleModClient implements ClientModInitializer {
 				String dim = client.level.dimension().identifier().toString();
 				if (lastDimensionId != null && !lastDimensionId.equals(dim)) {
 					HudOverlayManager.recompute();
-					if (client.screen instanceof com.betterlist.gui.GuiBetterMaterialList gui) {
+					if (client.gui.screen() instanceof com.betterlist.gui.GuiBetterMaterialList gui) {
 						gui.externalRefresh();
 					}
 				}
@@ -231,7 +231,7 @@ public class ExampleModClient implements ClientModInitializer {
 				HudOverlayManager.recompute();
 			}
 
-			if (HudOverlayManager.isEnabled() && client.screen == null
+			if (HudOverlayManager.isEnabled() && client.gui.screen() == null
 					&& com.betterlist.gui.GuiBetterMaterialList.isAutoRefreshEnabled()
 					&& ++autoRecountTick >= AUTO_RECOUNT_INTERVAL) {
 				autoRecountTick = 0;
@@ -278,9 +278,9 @@ public class ExampleModClient implements ClientModInitializer {
 	private static void renderTargetedItemsHud(net.minecraft.client.gui.GuiGraphicsExtractor drawContext) {
 		if (!HudOverlayManager.isEnabled()) return;
 		Minecraft mc = Minecraft.getInstance();
-		if (mc.player == null || mc.options.hideGui) return;
+		if (mc.player == null || mc.gui.hud.isHidden()) return;
 		// Don't cover screens (e.g. the open material list) — HUD only in-game.
-		if (mc.screen != null) return;
+		if (mc.gui.screen() != null) return;
 
 		List<HudOverlayManager.Row> rows = HudOverlayManager.getRows();
 		if (rows.isEmpty()) return;

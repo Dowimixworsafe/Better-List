@@ -211,7 +211,7 @@ public class GuiParty extends GuiBase {
     }
 
     private void reopen() {
-        Minecraft.getInstance().setScreen(new GuiParty(this.placementName));
+        Minecraft.getInstance().gui.setScreen(new GuiParty(this.placementName));
     }
 
     // ── Render (text, frames, heads) ────────────────────────────────────────────

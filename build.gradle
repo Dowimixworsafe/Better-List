@@ -45,8 +45,8 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-	implementation "maven.modrinth:malilib:0.28.3"
-	implementation "maven.modrinth:litematica:0.27.3"
+	implementation "maven.modrinth:malilib:0.29.3"
+	implementation "maven.modrinth:litematica:0.28.3"
 }
 
 processResources {
