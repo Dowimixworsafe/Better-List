@@ -1,20 +1,23 @@
 package com.betterlist.mixin;
 
 import com.betterlist.data.ContainerDataManager;
+import com.betterlist.gui.CompactCheckbox;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.gui.components.Button;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.core.registries.BuiltInRegistries;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.gen.Accessor;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,7 +27,40 @@ import java.util.Map;
 public abstract class AbstractContainerScreenMixin extends net.minecraft.client.gui.screens.Screen {
 
     @Unique
-    protected Button bml_TrackingButtonInstance;
+    private static final Component BML_TRACKING_TOOLTIP = Component.literal("Track in Material List");
+
+    @Unique
+    private static final int BML_TRACKING_CHECKBOX_SIZE = 9;
+
+    @Unique
+    private static final int BML_TRACKING_ICON_SIZE = 10;
+
+    @Unique
+    private static final int BML_TRACKING_CONTROL_GAP = 2;
+
+    @Unique
+    private static final int BML_TRACKING_RIGHT_INSET = 7;
+
+    @Unique
+    private static final int BML_TRACKING_TOP_INSET = 5;
+
+    @Unique
+    protected CompactCheckbox bml_TrackingCheckboxInstance;
+
+    @Unique
+    private int bml_trackingIconX;
+
+    @Unique
+    private int bml_trackingIconY;
+
+    @Accessor("leftPos")
+    protected abstract int bml_getLeftPos();
+
+    @Accessor("topPos")
+    protected abstract int bml_getTopPos();
+
+    @Accessor("imageWidth")
+    protected abstract int bml_getImageWidth();
 
     protected AbstractContainerScreenMixin(Component title) {
         super(title);
@@ -83,8 +119,6 @@ public abstract class AbstractContainerScreenMixin extends net.minecraft.client.
 
     @Inject(method = "init", at = @At("RETURN"))
     protected void onInit(CallbackInfo ci) {
-        AbstractContainerScreen<?> screen = (AbstractContainerScreen<?>) (Object) this;
-
         // Avoid injecting into furnaces, anvils, crafting tables, etc.
         if (!bml_isTrackableContainer())
             return;
@@ -93,32 +127,47 @@ public abstract class AbstractContainerScreenMixin extends net.minecraft.client.
         if (cid == null)
             return;
 
-        int guiLeft = (screen.width - 176) / 2;
-        int guiTop = (screen.height - 166) / 2;
+        // Keep the paper icon at the right and let the larger checkbox extend to
+        // the left, matching the original title-strip proportions.
+        int controlWidth =
+                BML_TRACKING_CHECKBOX_SIZE + BML_TRACKING_CONTROL_GAP
+                        + BML_TRACKING_ICON_SIZE;
+        int controlX =
+                bml_getLeftPos() + bml_getImageWidth()
+                        - controlWidth - BML_TRACKING_RIGHT_INSET;
+        int controlY = bml_getTopPos() + BML_TRACKING_TOP_INSET;
 
-        int btnWidth = 20;
-        int btnHeight = 20;
-        int btnX = guiLeft + 176 - btnWidth;
-        int btnY = guiTop - 50; // Button sits above the player inventory, on the right.
+        this.bml_trackingIconX =
+                controlX + BML_TRACKING_CHECKBOX_SIZE + BML_TRACKING_CONTROL_GAP;
+        this.bml_trackingIconY =
+                controlY + (BML_TRACKING_CHECKBOX_SIZE - BML_TRACKING_ICON_SIZE) / 2;
 
-        this.bml_TrackingButtonInstance = Button.builder(Component.literal(""), button -> {
-            boolean marked = !ContainerDataManager.isContainerMarked(cid);
-            ContainerDataManager.setContainerMarked(cid, marked);
-        }).bounds(btnX, btnY, btnWidth, btnHeight).build();
-
-        this.addRenderableWidget(this.bml_TrackingButtonInstance);
+        this.bml_TrackingCheckboxInstance = new CompactCheckbox(
+                controlX,
+                controlY,
+                BML_TRACKING_CHECKBOX_SIZE,
+                BML_TRACKING_TOOLTIP,
+                ContainerDataManager.isContainerMarked(cid),
+                selected -> ContainerDataManager.setContainerMarked(cid, selected));
+        this.bml_TrackingCheckboxInstance.setTooltip(Tooltip.create(BML_TRACKING_TOOLTIP));
+        this.addRenderableWidget(this.bml_TrackingCheckboxInstance);
     }
 
     @Inject(method = "extractRenderState", at = @At("TAIL"))
-    public void onRender(net.minecraft.client.gui.GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick, CallbackInfo ci) {
-        if (this.bml_TrackingButtonInstance != null && this.bml_TrackingButtonInstance.visible) {
-            String cid = getContainerId();
-            if (cid != null) {
-                boolean isMarked = ContainerDataManager.isContainerMarked(cid);
-                if (isMarked) {
-                    guiGraphics.item(new ItemStack(net.minecraft.world.item.Items.REDSTONE_TORCH), this.bml_TrackingButtonInstance.getX() + 2, this.bml_TrackingButtonInstance.getY() + 2);
-                }
-            }
+    public void onRender(
+            net.minecraft.client.gui.GuiGraphicsExtractor guiGraphics,
+            int mouseX,
+            int mouseY,
+            float partialTick,
+            CallbackInfo ci) {
+        if (this.bml_TrackingCheckboxInstance != null
+                && this.bml_TrackingCheckboxInstance.visible) {
+            float iconScale = BML_TRACKING_ICON_SIZE / 16.0F;
+            guiGraphics.pose().pushMatrix();
+            guiGraphics.pose().translate(this.bml_trackingIconX, this.bml_trackingIconY);
+            guiGraphics.pose().scale(iconScale, iconScale);
+            guiGraphics.item(new ItemStack(Items.PAPER), 0, 0);
+            guiGraphics.pose().popMatrix();
         }
     }
 

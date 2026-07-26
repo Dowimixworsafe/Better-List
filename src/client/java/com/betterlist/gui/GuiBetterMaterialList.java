@@ -60,6 +60,7 @@ public class GuiBetterMaterialList
     private ButtonGeneric btnFocusMaster;
     private ButtonGeneric btnPlayers;
     private boolean showPlayerDropdown = false;
+    private LayoutMetrics layoutMetrics;
 
     private record FaceRenderRequest(String nick, int x, int y, int size) {}
     private final java.util.List<FaceRenderRequest> faceRenderRequests = new java.util.ArrayList<>();
@@ -159,9 +160,10 @@ public class GuiBetterMaterialList
             return sortDescending ? -result : result;
         });
 
-        if (globalLayoutMode == LayoutMode.SINGLE) {
+        LayoutMode effectiveMode = getLayoutMode();
+        if (effectiveMode == LayoutMode.SINGLE) {
             for (MaterialListEntry e : filtered) pairs.add(new MaterialListEntryPair(e, null));
-        } else if (globalLayoutMode == LayoutMode.TWO_VERTICAL) {
+        } else if (effectiveMode == LayoutMode.TWO_VERTICAL) {
             int half = (filtered.size() + 1) / 2;
             for (int i = 0; i < half; i++) {
                 MaterialListEntry right = (i + half < filtered.size()) ? filtered.get(i + half) : null;
@@ -176,41 +178,64 @@ public class GuiBetterMaterialList
         return pairs;
     }
 
-    public LayoutMode getLayoutMode() { return globalLayoutMode; }
+    public LayoutMode getLayoutMode() {
+        return getLayoutMetrics().effectiveMode();
+    }
+
+    LayoutMetrics getLayoutMetrics() {
+        if (this.layoutMetrics == null) {
+            this.layoutMetrics = LayoutMetrics.calculate(
+                    this.getScreenWidth(), this.getScreenHeight(), globalLayoutMode, hasFocusBar());
+        }
+        return this.layoutMetrics;
+    }
 
     // ── GUI init ──────────────────────────────────────────────────────────────
 
     @Override
     public void initGui() {
+        this.layoutMetrics = LayoutMetrics.calculate(
+                this.getScreenWidth(), this.getScreenHeight(), globalLayoutMode, hasFocusBar());
+        // GuiListBase retains its widget between init calls, but its origin is immutable.
+        // Recreate it so resize/layout-mode changes use the same geometry as the controls.
+        this.reCreateListWidget();
         super.initGui();
 
-        int guiWidth = getEffectiveListWidth(getRawGuiWidth());
-        int startX   = (this.getScreenWidth() - guiWidth) / 2;
+        LayoutMetrics metrics = getLayoutMetrics();
 
-        // Top bar: Party | Layout | Auto | Refresh | Settings | Clear Cache
+        // Top controls flow onto the search row when the first row is full.
         String partyText = com.betterlist.network.BmlClientNetworking.serverSupported
                 ? (com.betterlist.party.PartyManager.isInParty() ? "§a👥 " + com.betterlist.util.BmlLang.tr("bml.list.party") : "§e👥 " + com.betterlist.util.BmlLang.tr("bml.list.party"))
                 : "§7👥 " + com.betterlist.util.BmlLang.tr("bml.list.no_server");
-        this.btnParty = new ButtonGeneric(startX, 6, 78, 20, partyText);
+        LayoutMetrics.Position partyPos = metrics.control(LayoutMetrics.Control.PARTY);
+        this.btnParty = new ButtonGeneric(
+                partyPos.x(), partyPos.y(), LayoutMetrics.Control.PARTY.width(), 20, partyText);
         this.addButton(this.btnParty, com.betterlist.util.BmlButtons.leftClick(
                 () -> fi.dy.masa.malilib.gui.GuiBase.openGui(new GuiParty(this.placementName))));
 
-        String layoutIcon = globalLayoutMode == LayoutMode.SINGLE ? "1-Col"
-                : (globalLayoutMode == LayoutMode.TWO_VERTICAL ? "2-Vert" : "2-Horiz");
-        this.btnLayout = new ButtonGeneric(startX + 82, 6, 54, 20, layoutIcon);
+        // While a narrow screen forces a single-column fallback, the disabled
+        // control must describe the layout the player is actually seeing.
+        LayoutMode displayedLayoutMode = metrics.effectiveMode();
+        String layoutIcon = displayedLayoutMode == LayoutMode.SINGLE ? "1-Col"
+                : (displayedLayoutMode == LayoutMode.TWO_VERTICAL ? "2-Vert" : "2-Horiz");
+        LayoutMetrics.Position layoutPos = metrics.control(LayoutMetrics.Control.LAYOUT);
+        this.btnLayout = new ButtonGeneric(
+                layoutPos.x(), layoutPos.y(), LayoutMetrics.Control.LAYOUT.width(), 20, layoutIcon);
+        this.btnLayout.setEnabled(!metrics.responsiveSingleFallback());
         ButtonGeneric btnLayout = this.btnLayout;
         this.addButton(btnLayout, com.betterlist.util.BmlButtons.leftClick(() -> {
             if      (globalLayoutMode == LayoutMode.TWO_HORIZONTAL) globalLayoutMode = LayoutMode.TWO_VERTICAL;
             else if (globalLayoutMode == LayoutMode.TWO_VERTICAL)   globalLayoutMode = LayoutMode.SINGLE;
             else                                                      globalLayoutMode = LayoutMode.TWO_HORIZONTAL;
-            String icon = globalLayoutMode == LayoutMode.SINGLE ? "1-Col"
-                    : (globalLayoutMode == LayoutMode.TWO_VERTICAL ? "2-Vert" : "2-Horiz");
-            btnLayout.setDisplayString(icon);
-            if (this.getListWidget() != null) this.getListWidget().refreshEntries();
+            // Rebuilding changes both list pairing and widget geometry. Defer it until the
+            // current button-dispatch pass has finished.
+            Minecraft.getInstance().execute(this::initGui);
         }));
 
         // Auto-refresh toggle
-        this.btnAutoRefresh = new ButtonGeneric(startX + 140, 6, 60, 20,
+        LayoutMetrics.Position autoPos = metrics.control(LayoutMetrics.Control.AUTO_REFRESH);
+        this.btnAutoRefresh = new ButtonGeneric(
+                autoPos.x(), autoPos.y(), LayoutMetrics.Control.AUTO_REFRESH.width(), 20,
                 globalAutoRefresh ? "§a" + com.betterlist.util.BmlLang.tr("bml.list.auto_on") : "§c" + com.betterlist.util.BmlLang.tr("bml.list.auto_off"));
         this.addButton(this.btnAutoRefresh, com.betterlist.util.BmlButtons.leftClick(() -> {
             globalAutoRefresh = !globalAutoRefresh;
@@ -219,33 +244,48 @@ public class GuiBetterMaterialList
         }));
 
         // Manual refresh (triggers Litematica task — shows notification, but user-initiated)
-        this.btnRefresh = new ButtonGeneric(startX + 204, 6, 20, 20, "⟳");
+        LayoutMetrics.Position refreshPos = metrics.control(LayoutMetrics.Control.REFRESH);
+        this.btnRefresh = new ButtonGeneric(
+                refreshPos.x(), refreshPos.y(), LayoutMetrics.Control.REFRESH.width(), 20, "⟳");
         this.addButton(this.btnRefresh, com.betterlist.util.BmlButtons.leftClick(this::triggerFullRefresh));
 
         // Chests
-        this.btnChests = new ButtonGeneric(startX + 228, 6, 68, 20, "   §b" + com.betterlist.util.BmlLang.tr("bml.list.chests"));
+        LayoutMetrics.Position chestsPos = metrics.control(LayoutMetrics.Control.CHESTS);
+        this.btnChests = new ButtonGeneric(
+                chestsPos.x(), chestsPos.y(), LayoutMetrics.Control.CHESTS.width(), 20,
+                "   §b" + com.betterlist.util.BmlLang.tr("bml.list.chests"));
         this.addButton(this.btnChests, com.betterlist.util.BmlButtons.leftClick(
                 () -> fi.dy.masa.malilib.gui.GuiBase.openGui(new GuiBmlChests(this.placementName))));
 
         // Schematics folder
-        this.btnSchematics = new ButtonGeneric(startX + 300, 6, 90, 20, "   §e" + com.betterlist.util.BmlLang.tr("bml.list.schematics"));
+        LayoutMetrics.Position schematicsPos = metrics.control(LayoutMetrics.Control.SCHEMATICS);
+        this.btnSchematics = new ButtonGeneric(
+                schematicsPos.x(), schematicsPos.y(), LayoutMetrics.Control.SCHEMATICS.width(), 20,
+                "   §e" + com.betterlist.util.BmlLang.tr("bml.list.schematics"));
         this.addButton(this.btnSchematics, com.betterlist.util.BmlButtons.leftClick(this::openSchematicsFolder));
 
         // Settings & Clear Cache (top-right)
-        this.btnSettings = new ButtonGeneric(startX + guiWidth - 126, 6, 62, 20, "§e" + com.betterlist.util.BmlLang.tr("bml.list.settings"));
+        LayoutMetrics.Position settingsPos = metrics.control(LayoutMetrics.Control.SETTINGS);
+        this.btnSettings = new ButtonGeneric(
+                settingsPos.x(), settingsPos.y(), LayoutMetrics.Control.SETTINGS.width(), 20,
+                "§e" + com.betterlist.util.BmlLang.tr("bml.list.settings"));
         this.addButton(this.btnSettings, com.betterlist.util.BmlButtons.leftClick(
                 () -> fi.dy.masa.malilib.gui.GuiBase.openGui(new GuiConfigs())));
-        this.btnCache = new ButtonGeneric(startX + guiWidth - 60, 6, 60, 20, "§c🗑 " + com.betterlist.util.BmlLang.tr("bml.list.cache"));
+        LayoutMetrics.Position cachePos = metrics.control(LayoutMetrics.Control.CACHE);
+        this.btnCache = new ButtonGeneric(
+                cachePos.x(), cachePos.y(), LayoutMetrics.Control.CACHE.width(), 20,
+                "§c🗑 " + com.betterlist.util.BmlLang.tr("bml.list.cache"));
         this.addButton(this.btnCache, com.betterlist.util.BmlButtons.leftClick(this::clearCache));
 
-        // Bottom bar: search on its own row when narrow, filters + focus always on one row
-        int bottomY = this.getScreenHeight() - 26;
-        boolean twoRows = guiWidth < 680;
-        int row1Y = twoRows ? bottomY - 24 : bottomY;
-        int row2Y = bottomY;
-
+        // The search field owns the left side of the second top row.
+        LayoutMetrics.Position searchPos = metrics.control(LayoutMetrics.Control.SEARCH);
         if (this.searchField == null) {
-            this.searchField = new EditBox(this.font, startX, row1Y, 120, 20,
+            this.searchField = new EditBox(
+                    this.font,
+                    searchPos.x(),
+                    searchPos.y(),
+                    LayoutMetrics.Control.SEARCH.width(),
+                    20,
                     Component.literal(com.betterlist.util.BmlLang.tr("bml.gui.search_placeholder")));
             this.searchField.setResponder(text -> {
                 globalSearchText = text;
@@ -253,14 +293,15 @@ public class GuiBetterMaterialList
             });
             this.searchField.setValue(globalSearchText);
         } else {
-            this.searchField.setX(startX);
-            this.searchField.setY(row1Y);
+            this.searchField.setX(searchPos.x());
+            this.searchField.setY(searchPos.y());
         }
         if (!this.children().contains(this.searchField)) this.addRenderableWidget(this.searchField);
 
         // Filter buttons: Placed / Stored / Checked — icons rendered over them in drawContents
-        int filterX = twoRows ? startX : startX + 130;
-        this.btnPlacedCheck = new ButtonGeneric(filterX, row2Y, 56, 20,
+        LayoutMetrics.Position placedPos = metrics.control(LayoutMetrics.Control.PLACED_FILTER);
+        this.btnPlacedCheck = new ButtonGeneric(
+                placedPos.x(), placedPos.y(), LayoutMetrics.Control.PLACED_FILTER.width(), 20,
                 globalHideFullyPlaced ? "   §a" + com.betterlist.util.BmlLang.tr("bml.list.on") : "   §c" + com.betterlist.util.BmlLang.tr("bml.list.off"));
         this.addButton(btnPlacedCheck, com.betterlist.util.BmlButtons.leftClick(() -> {
             globalHideFullyPlaced = !globalHideFullyPlaced;
@@ -268,7 +309,9 @@ public class GuiBetterMaterialList
             if (this.getListWidget() != null) this.getListWidget().refreshEntries();
         }));
 
-        this.btnStoredCheck = new ButtonGeneric(filterX + 60, row2Y, 56, 20,
+        LayoutMetrics.Position storedPos = metrics.control(LayoutMetrics.Control.STORED_FILTER);
+        this.btnStoredCheck = new ButtonGeneric(
+                storedPos.x(), storedPos.y(), LayoutMetrics.Control.STORED_FILTER.width(), 20,
                 globalHideFullyStored ? "   §a" + com.betterlist.util.BmlLang.tr("bml.list.on") : "   §c" + com.betterlist.util.BmlLang.tr("bml.list.off"));
         this.addButton(btnStoredCheck, com.betterlist.util.BmlButtons.leftClick(() -> {
             globalHideFullyStored = !globalHideFullyStored;
@@ -276,7 +319,9 @@ public class GuiBetterMaterialList
             if (this.getListWidget() != null) this.getListWidget().refreshEntries();
         }));
 
-        this.btnChecked = new ButtonGeneric(filterX + 120, row2Y, 70, 20,
+        LayoutMetrics.Position checkedPos = metrics.control(LayoutMetrics.Control.CHECKED_FILTER);
+        this.btnChecked = new ButtonGeneric(
+                checkedPos.x(), checkedPos.y(), LayoutMetrics.Control.CHECKED_FILTER.width(), 20,
                 globalHideChecked ? "§b✔ §a" + com.betterlist.util.BmlLang.tr("bml.list.on") : "§b✔ §c" + com.betterlist.util.BmlLang.tr("bml.list.off"));
         ButtonGeneric btnChecked = this.btnChecked;
         this.addButton(btnChecked, com.betterlist.util.BmlButtons.leftClick(() -> {
@@ -290,17 +335,24 @@ public class GuiBetterMaterialList
         this.btnPlayers = null;
         this.btnClearTargets = null;
         if (hasFocusBar()) {
-            int fbx = filterX + 198; // filterX + Grass(56) + gap(4) + Chest(56) + gap(4) + ✔(70) + gap(8)
-            this.btnFocusMaster = new ButtonGeneric(fbx, row2Y, 84, 20, focusModeLabel());
+            LayoutMetrics.Position focusPos = metrics.control(LayoutMetrics.Control.FOCUS_MODE);
+            this.btnFocusMaster = new ButtonGeneric(
+                    focusPos.x(), focusPos.y(), LayoutMetrics.Control.FOCUS_MODE.width(), 20,
+                    focusModeLabel());
             this.addButton(this.btnFocusMaster, com.betterlist.util.BmlButtons.leftClick(() -> {
                 com.betterlist.party.FocusManager.cycleFocusMode();
                 this.btnFocusMaster.setDisplayString(focusModeLabel());
             }));
 
-            this.btnPlayers = new ButtonGeneric(fbx + 88, row2Y, 72, 20, "§e" + com.betterlist.util.BmlLang.tr("bml.list.players") + " §7▾");
+            LayoutMetrics.Position playersPos = metrics.control(LayoutMetrics.Control.PLAYERS);
+            this.btnPlayers = new ButtonGeneric(
+                    playersPos.x(), playersPos.y(), LayoutMetrics.Control.PLAYERS.width(), 20,
+                    "§e" + com.betterlist.util.BmlLang.tr("bml.list.players") + " §7▾");
             this.addButton(this.btnPlayers, com.betterlist.util.BmlButtons.leftClick(() -> showPlayerDropdown = !showPlayerDropdown));
 
-            this.btnClearTargets = new ButtonGeneric(fbx + 164, row2Y, 64, 20,
+            LayoutMetrics.Position clearPos = metrics.control(LayoutMetrics.Control.CLEAR_TARGETS);
+            this.btnClearTargets = new ButtonGeneric(
+                    clearPos.x(), clearPos.y(), LayoutMetrics.Control.CLEAR_TARGETS.width(), 20,
                     "§c✖ " + com.betterlist.util.BmlLang.tr("bml.list.clear_targets"));
             this.addButton(this.btnClearTargets, com.betterlist.util.BmlButtons.leftClick(() -> {
                 com.betterlist.party.FocusManager.clearMyTargets();
@@ -485,35 +537,25 @@ public class GuiBetterMaterialList
 
     // ── Layout helpers ────────────────────────────────────────────────────────
 
-    private int getRawGuiWidth() {
-        int w = Math.max(600, (int) (this.getScreenWidth() * 0.9));
-        return Math.min(w, this.getScreenWidth() - 20);
-    }
-
-    private int getEffectiveListWidth(int guiWidth) {
-        return (globalLayoutMode == LayoutMode.SINGLE)
-                ? Math.min(guiWidth, BmlLayoutConstants.SINGLE_MODE_MAX_WIDTH)
-                : guiWidth;
-    }
-
     @Override
     protected WidgetMaterialList createListWidget(int listX, int listY) {
-        int raw    = getRawGuiWidth();
-        int width  = getEffectiveListWidth(raw);
-        int height = this.getScreenHeight() - 80;
-        if (raw < 680) height -= 24;
-        int startX = (this.getScreenWidth() - width) / 2;
-        return new WidgetMaterialList(startX, 50, width, height, this);
+        LayoutMetrics metrics = getLayoutMetrics();
+        return new WidgetMaterialList(
+                metrics.listX(),
+                metrics.listY(),
+                metrics.listWidth(),
+                metrics.listHeight(),
+                this);
     }
 
     @Override
-    protected int getBrowserWidth() { return getRawGuiWidth(); }
+    protected int getBrowserWidth() {
+        return getLayoutMetrics().listWidth();
+    }
 
     @Override
     protected int getBrowserHeight() {
-        int h = this.getScreenHeight() - 80;
-        if (getRawGuiWidth() < 680) h -= 24;
-        return h;
+        return getLayoutMetrics().listHeight();
     }
 
     // ── Rendering ─────────────────────────────────────────────────────────────
@@ -526,61 +568,52 @@ public class GuiBetterMaterialList
         this.faceRenderRequests.clear();
         super.drawContents(guiContext, mouseX, mouseY, partialTicks);
 
-        int raw          = getRawGuiWidth();
-        int effectiveW   = getEffectiveListWidth(raw);
-        int startX       = (this.getScreenWidth() - effectiveW) / 2;
-        int halfWidth    = effectiveW / 2;
-        int headerY      = 38;
+        LayoutMetrics metrics = getLayoutMetrics();
+        int headerY = metrics.headerY();
 
         net.minecraft.client.gui.Font font = Minecraft.getInstance().font;
 
-        boolean isSingle = globalLayoutMode == LayoutMode.SINGLE;
-        int totalColW = isSingle ? BmlLayoutConstants.SINGLE_TOTAL_WIDTH : BmlLayoutConstants.TOTAL_WIDTH;
-
+        boolean isSingle = metrics.isSingleColumn();
         int loopCount = isSingle ? 1 : 2;
         for (int i = 0; i < loopCount; i++) {
-            int x     = startX + (i * halfWidth);
-            int width = isSingle ? effectiveW : halfWidth;
-            if (i == 1) { x += 1; width -= 1; }
-
-            int cEnd   = x + width - BmlLayoutConstants.CHECKBOX_MARGIN;
-            int cStart = cEnd   - BmlLayoutConstants.CHECKBOX_WIDTH;
-            int misEnd = cStart - BmlLayoutConstants.COLUMN_GAP;
-            int misS   = misEnd - BmlLayoutConstants.MISSING_WIDTH;
-            int avEnd  = misS   - BmlLayoutConstants.COLUMN_GAP;
-            int avS    = avEnd  - BmlLayoutConstants.AVAILABLE_WIDTH;
-            int plEnd  = avS    - BmlLayoutConstants.COLUMN_GAP;
-            int plS    = plEnd  - BmlLayoutConstants.PLACED_WIDTH;
-            int toEnd  = plS    - BmlLayoutConstants.COLUMN_GAP;
-            int toS    = toEnd  - totalColW;
+            LayoutMetrics.Section section = metrics.entrySection(i);
+            LayoutMetrics.Columns columns = metrics.columns(section.x(), section.width());
 
             String arr = sortDescending ? "▼" : "▲";
+            String blockHeader = fitHeader(
+                    font,
+                    com.betterlist.util.BmlLang.tr("bml.col.block"),
+                    currentSortMode == SortMode.BLOCK,
+                    arr,
+                    columns.maxNameWidth());
             guiContext.drawString(font,
-                com.betterlist.util.BmlLang.tr("bml.col.block") + (currentSortMode == SortMode.BLOCK ? " " + arr : ""),
-                x + BmlLayoutConstants.NAME_OFFSET_X, headerY,
+                blockHeader,
+                columns.nameStart(), headerY,
                 currentSortMode == SortMode.BLOCK ? 0xFFFFAA00 : 0xFFCCCCCC, false);
             guiContext.drawString(font,
                 com.betterlist.util.BmlLang.tr("bml.col.need") + (currentSortMode == SortMode.REQUIRED ? " " + arr : ""),
-                toS + 2, headerY, currentSortMode == SortMode.REQUIRED ? 0xFFFFAA00 : 0xFFAAAAAA, false);
+                columns.totalStart() + 2, headerY, currentSortMode == SortMode.REQUIRED ? 0xFFFFAA00 : 0xFFAAAAAA, false);
             guiContext.drawString(font,
                 com.betterlist.util.BmlLang.tr("bml.col.done") + (currentSortMode == SortMode.PLACED ? " " + arr : ""),
-                plS + 2, headerY, currentSortMode == SortMode.PLACED ? 0xFFFFAA00 : 0xFFFFFFFF, false);
+                columns.placedStart() + 2, headerY, currentSortMode == SortMode.PLACED ? 0xFFFFAA00 : 0xFFFFFFFF, false);
             guiContext.drawString(font,
                 com.betterlist.util.BmlLang.tr("bml.col.have") + (currentSortMode == SortMode.STORED ? " " + arr : ""),
-                avS + 2, headerY, currentSortMode == SortMode.STORED ? 0xFFFFAA00 : 0xFFFFFFFF, false);
+                columns.availableStart() + 2, headerY, currentSortMode == SortMode.STORED ? 0xFFFFAA00 : 0xFFFFFFFF, false);
             guiContext.drawString(font,
                 com.betterlist.util.BmlLang.tr("bml.col.miss") + (currentSortMode == SortMode.MISSING ? " " + arr : ""),
-                misS + 2, headerY, currentSortMode == SortMode.MISSING ? 0xFFFFAA00 : 0xFFFF7777, false);
+                columns.missingStart() + 2, headerY, currentSortMode == SortMode.MISSING ? 0xFFFFAA00 : 0xFFFF7777, false);
         }
 
         if (this.materialList == null || this.materialList.isEmpty()) {
             String msg = com.betterlist.util.BmlLang.tr("bml.list.no_schematic");
             guiContext.drawString(font, msg,
-                startX + (effectiveW - font.width(msg)) / 2, headerY + 50, 0xFFFF5555, false);
+                metrics.contentX() + (metrics.contentWidth() - font.width(msg)) / 2,
+                headerY + 50, 0xFFFF5555, false);
             String hint = "§7" + com.betterlist.util.BmlLang.tr("bml.list.drop_hint");
             String hintPlain = "Drop .litematic files here to add them to your schematics folder";
             guiContext.drawString(font, hint,
-                startX + (effectiveW - font.width(hintPlain)) / 2, headerY + 66, 0xFFAAAAAA, false);
+                metrics.contentX() + (metrics.contentWidth() - font.width(hintPlain)) / 2,
+                headerY + 66, 0xFFAAAAAA, false);
         }
 
         if (this.searchField != null)
@@ -641,11 +674,28 @@ public class GuiBetterMaterialList
         }
 
         // Hover tooltip — rendered last so it draws on top of everything (config-toggleable)
-        if (this.hoveredEntry != null && globalLayoutMode != LayoutMode.SINGLE
+        if (this.hoveredEntry != null && getLayoutMode() != LayoutMode.SINGLE
                 && com.betterlist.config.ModConfig.SHOW_ITEM_HOVER_TOOLTIP)
             renderEntryTooltip(guiContext, this.hoveredEntry, this.hoveredMouseX, this.hoveredMouseY);
 
         drawButtonTooltips(guiContext, mouseX, mouseY);
+    }
+
+    private static String fitHeader(
+            net.minecraft.client.gui.Font font,
+            String label,
+            boolean active,
+            String sortArrow,
+            int maxWidth) {
+        if (maxWidth <= 0) return "";
+
+        String suffix = active ? " " + sortArrow : "";
+        int labelWidth = Math.max(0, maxWidth - font.width(suffix));
+        String fitted = label;
+        while (!fitted.isEmpty() && font.width(fitted) > labelWidth) {
+            fitted = fitted.substring(0, fitted.length() - 1);
+        }
+        return fitted + suffix;
     }
 
     private void drawButtonTooltips(GuiContext ctx, int mouseX, int mouseY) {
@@ -822,38 +872,23 @@ public class GuiBetterMaterialList
     // ── Header sort clicks ────────────────────────────────────────────────────
 
     private void handleHeaderClick(double mouseX, double mouseY) {
-        int effectiveW = getEffectiveListWidth(getRawGuiWidth());
-        int halfWidth  = effectiveW / 2;
-        int startX     = (this.getScreenWidth() - effectiveW) / 2;
-        int headerY    = 38;
+        LayoutMetrics metrics = getLayoutMetrics();
+        int headerY = metrics.headerY();
 
         if (mouseY < headerY - 4 || mouseY > headerY + 12) return;
 
-        boolean isSingle  = globalLayoutMode == LayoutMode.SINGLE;
-        int totalColW     = isSingle ? BmlLayoutConstants.SINGLE_TOTAL_WIDTH : BmlLayoutConstants.TOTAL_WIDTH;
-        int loopCount     = isSingle ? 1 : 2;
+        boolean isSingle = metrics.isSingleColumn();
+        int loopCount = isSingle ? 1 : 2;
         for (int i = 0; i < loopCount; i++) {
-            int x     = startX + (i * halfWidth);
-            int width = isSingle ? effectiveW : halfWidth;
-            if (i == 1) { x += 1; width -= 1; }
+            LayoutMetrics.Section section = metrics.entrySection(i);
+            LayoutMetrics.Columns columns = metrics.columns(section.x(), section.width());
 
-            int cEnd   = x + width - BmlLayoutConstants.CHECKBOX_MARGIN;
-            int cStart = cEnd   - BmlLayoutConstants.CHECKBOX_WIDTH;
-            int misEnd = cStart - BmlLayoutConstants.COLUMN_GAP;
-            int misS   = misEnd - BmlLayoutConstants.MISSING_WIDTH;
-            int avEnd  = misS   - BmlLayoutConstants.COLUMN_GAP;
-            int avS    = avEnd  - BmlLayoutConstants.AVAILABLE_WIDTH;
-            int plEnd  = avS    - BmlLayoutConstants.COLUMN_GAP;
-            int plS    = plEnd  - BmlLayoutConstants.PLACED_WIDTH;
-            int toEnd  = plS    - BmlLayoutConstants.COLUMN_GAP;
-            int toS    = toEnd  - totalColW;
-
-            if      (mouseX >= x + BmlLayoutConstants.NAME_OFFSET_X && mouseX < toS)   { setSortMode(SortMode.BLOCK);    return; }
-            else if (mouseX >= toS  && mouseX < plS)   { setSortMode(SortMode.REQUIRED); return; }
-            else if (mouseX >= plS  && mouseX < avS)   { setSortMode(SortMode.PLACED);   return; }
-            else if (mouseX >= avS  && mouseX < misS)  { setSortMode(SortMode.STORED);   return; }
-            else if (mouseX >= misS && mouseX < cStart){ setSortMode(SortMode.MISSING);  return; }
-            else if (mouseX >= cStart && mouseX <= cEnd){ setSortMode(SortMode.CHECKED); return; }
+            if      (mouseX >= columns.nameStart() && mouseX < columns.totalStart())     { setSortMode(SortMode.BLOCK);    return; }
+            else if (mouseX >= columns.totalStart() && mouseX < columns.placedStart())   { setSortMode(SortMode.REQUIRED); return; }
+            else if (mouseX >= columns.placedStart() && mouseX < columns.availableStart()){ setSortMode(SortMode.PLACED);   return; }
+            else if (mouseX >= columns.availableStart() && mouseX < columns.missingStart()){ setSortMode(SortMode.STORED);   return; }
+            else if (mouseX >= columns.missingStart() && mouseX < columns.checkboxStart()){ setSortMode(SortMode.MISSING);  return; }
+            else if (mouseX >= columns.checkboxStart() && mouseX <= columns.checkboxEnd()){ setSortMode(SortMode.CHECKED); return; }
         }
     }
 
