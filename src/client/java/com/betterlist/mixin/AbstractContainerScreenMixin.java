@@ -66,44 +66,12 @@ public abstract class AbstractContainerScreenMixin extends net.minecraft.client.
         super(title);
     }
 
-    // Builds a unique chest id: dimension + coordinates (e.g. minecraft:overworld;[10, 64, -20]).
-    // Merges double chests into a single ID!
+    // Chest id of the block the player last right-clicked. The derivation (including the
+    // double-chest merge) lives in ContainerDataManager so the break hook and this screen
+    // can never disagree about what a chest is called.
     private String getContainerId() {
-        if (ContainerDataManager.lastInteractedBlockPos == null || Minecraft.getInstance().level == null) {
-            return null;
-        }
-
-        net.minecraft.core.BlockPos pos = ContainerDataManager.lastInteractedBlockPos;
-        net.minecraft.world.level.block.state.BlockState state = Minecraft.getInstance().level.getBlockState(pos);
-
-        // If it is a chest (ChestBlock).
-        if (state.getBlock() instanceof net.minecraft.world.level.block.ChestBlock) {
-            net.minecraft.world.level.block.state.properties.ChestType chestType = state
-                    .getValue(net.minecraft.world.level.block.ChestBlock.TYPE);
-
-            // If it is not a single chest.
-            if (chestType != net.minecraft.world.level.block.state.properties.ChestType.SINGLE) {
-                net.minecraft.core.Direction facing = state.getValue(net.minecraft.world.level.block.ChestBlock.FACING);
-                net.minecraft.core.BlockPos otherHalfPos = pos;
-
-                // Compute the other half's position from the facing.
-                if (chestType == net.minecraft.world.level.block.state.properties.ChestType.RIGHT) {
-                    otherHalfPos = pos.relative(facing.getCounterClockWise());
-                } else if (chestType == net.minecraft.world.level.block.state.properties.ChestType.LEFT) {
-                    otherHalfPos = pos.relative(facing.getClockWise());
-                }
-
-                // Always pick the smaller BlockPos (smaller X, ties broken by smaller
-                // Z)
-                // so both halves produce an identical ID.
-                if (otherHalfPos.getX() < pos.getX()
-                        || (otherHalfPos.getX() == pos.getX() && otherHalfPos.getZ() < pos.getZ())) {
-                    pos = otherHalfPos;
-                }
-            }
-        }
-
-        return Minecraft.getInstance().level.dimension().identifier().toString() + ";" + pos.toShortString();
+        return ContainerDataManager.containerIdAt(
+                Minecraft.getInstance().level, ContainerDataManager.lastInteractedBlockPos);
     }
 
     // Only chests / shulker boxes / hoppers are trackable containers. The player's own

@@ -21,4 +21,14 @@ public class MultiPlayerGameModeMixin {
             com.betterlist.data.ContainerDataManager.lastInteractedBlockPos = hitResult.getBlockPos();
         }
     }
+
+    // HEAD, not RETURN: the block (and its chest half / facing) must still be there for the
+    // container id to be derivable.
+    @Inject(method = "destroyBlock", at = @At("HEAD"))
+    private void onDestroyBlock(BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
+        Level level = net.minecraft.client.Minecraft.getInstance().level;
+        if (level != null) {
+            com.betterlist.data.ContainerDataManager.onBlockDestroyed(level, pos);
+        }
+    }
 }

@@ -9,6 +9,13 @@ import com.google.gson.reflect.TypeToken;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.Container;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.properties.ChestType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,6 +65,37 @@ public class ContainerDataManager {
 
     public static boolean isValidContainerId(String id) {
         return id != null && CONTAINER_ID_PATTERN.matcher(id).matches();
+    }
+
+    /**
+     * Canonical id of whatever sits at {@code pos}: {@code "<dimension>;<x, y, z>"}.
+     *
+     * Both halves of a double chest resolve to the SAME id (the half with the smaller X,
+     * ties broken by smaller Z), so a double chest is tracked once. This is the only place
+     * that derives an id from a position — deriving it in two diverging places is exactly
+     * what produced the historical "stored randomly changes between openings" bug.
+     */
+    public static String containerIdAt(Level level, BlockPos pos) {
+        if (level == null || pos == null) return null;
+
+        BlockState state = level.getBlockState(pos);
+        BlockPos keyPos = pos;
+
+        if (state.getBlock() instanceof ChestBlock) {
+            ChestType chestType = state.getValue(ChestBlock.TYPE);
+            if (chestType != ChestType.SINGLE) {
+                Direction facing = state.getValue(ChestBlock.FACING);
+                BlockPos otherHalf = chestType == ChestType.RIGHT
+                        ? pos.relative(facing.getCounterClockWise())
+                        : pos.relative(facing.getClockWise());
+                if (otherHalf.getX() < pos.getX()
+                        || (otherHalf.getX() == pos.getX() && otherHalf.getZ() < pos.getZ())) {
+                    keyPos = otherHalf;
+                }
+            }
+        }
+
+        return level.dimension().identifier().toString() + ";" + keyPos.toShortString();
     }
 
     // Last clicked block — set by MultiPlayerGameModeMixin, used to derive the
@@ -220,6 +258,63 @@ public class ContainerDataManager {
             containers.remove(containerId);
         }
         markDirty();
+    }
+
+    /**
+     * Stops tracking a chest and drops its in-world outline, mirroring what the ✖ button
+     * in the chest manager does.
+     */
+    private static void forgetContainer(String containerId) {
+        setContainerMarked(containerId, false);
+        if (ChestHighlightManager.isHighlighted(containerId)) {
+            ChestHighlightManager.toggle(containerId);
+        }
+    }
+
+    /**
+     * Drops a tracked chest the moment the local player breaks it.
+     *
+     * {@link #pruneDestroyedContainers} would catch this on its next sweep anyway, but
+     * breaking a chest and immediately placing a new one on the same spot slips through
+     * that window: the position — and therefore the id — is identical, so the fresh chest
+     * would silently inherit both the marked flag and the old contents.
+     */
+    public static void onBlockDestroyed(Level level, BlockPos pos) {
+        String containerId = containerIdAt(level, pos);
+        if (containerId == null || !isContainerMarked(containerId)) return;
+        LOGGER.info("[BML] Tracked chest {} was broken — dropping it from tracking.", containerId);
+        forgetContainer(containerId);
+    }
+
+    /**
+     * Drops tracked chests whose block no longer exists.
+     *
+     * A containerId is only a position, so without this a destroyed chest keeps feeding the
+     * "stored" column forever and a chest re-placed on the same spot comes back already
+     * marked. Catches what {@link #onBlockDestroyed} cannot see: chests broken by other
+     * players, explosions, or anything that happened while we were away.
+     *
+     * Only the CURRENT dimension is examined, and only positions whose chunk is loaded:
+     * client-side an unloaded chunk reads back as air, so validating those would wipe every
+     * chest the player merely happens to be standing away from.
+     */
+    public static void pruneDestroyedContainers(Level level) {
+        if (level == null) return;
+        String currentDim = level.dimension().identifier().toString();
+
+        for (String containerId : getMarkedContainers()) {
+            if (!currentDim.equals(ChestHighlightManager.dimensionOf(containerId))) continue;
+
+            BlockPos pos = ChestHighlightManager.posOf(containerId);
+            if (pos == null || !level.hasChunkAt(pos)) continue;
+            // Any Container block entity counts — a modded chest reusing the vanilla screen
+            // is trackable, and a false prune costs real data while a false keep costs nothing.
+            if (level.getBlockEntity(pos) instanceof Container) continue;
+
+            LOGGER.info("[BML] Tracked chest {} no longer exists — dropping it from tracking.",
+                    containerId);
+            forgetContainer(containerId);
+        }
     }
 
     /**

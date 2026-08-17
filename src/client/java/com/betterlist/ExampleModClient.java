@@ -57,6 +57,10 @@ public class ExampleModClient implements ClientModInitializer {
 	private static int autoRecountTick = 0;
 	private static final int AUTO_RECOUNT_INTERVAL = 200;
 
+	// Sweep tracked chests for ones whose block is gone, every ~2s.
+	private static int chestPruneTick = 0;
+	private static final int CHEST_PRUNE_INTERVAL = 40;
+
 	// Last dimension seen, to detect an in-place world swap (which does NOT fire DISCONNECT).
 	private static String lastDimensionId = null;
 
@@ -165,6 +169,12 @@ public class ExampleModClient implements ClientModInitializer {
 					}
 				}
 				lastDimensionId = dim;
+			}
+
+			// Forget tracked chests that no longer exist in the world.
+			if (client.level != null && ++chestPruneTick >= CHEST_PRUNE_INTERVAL) {
+				chestPruneTick = 0;
+				ContainerDataManager.pruneDestroyedContainers(client.level);
 			}
 
 			// Recompute the targeted-items HUD (only when enabled).
