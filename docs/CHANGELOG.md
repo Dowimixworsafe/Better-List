@@ -4,6 +4,14 @@ Release notes for Modrinth. Paste the relevant section into the version descript
 
 ---
 
+## 1.3.0+26.2 — Minecraft 26.2
+
+Same release as 1.3.0, rebuilt for Minecraft 26.2 against MaLiLib 0.29.3 and Litematica 0.28.3. No feature or behaviour differences — see the 1.3.0 notes below for everything that changed.
+
+The Minecraft 26.2 port started from a fork by **@m1kau**, opened as issue #2 by **@Leoruwer**.
+
+---
+
 ## 1.3.0 — Minecraft 26.1.2
 
 ### ⚠️ Update together
