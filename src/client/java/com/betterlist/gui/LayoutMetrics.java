@@ -32,8 +32,12 @@ record LayoutMetrics(
     private static final int HEADER_HEIGHT = 12;
     private static final int LIST_BOTTOM_GAP = 4;
 
-    // WidgetListBase reserves 3 px on the left and 14 px overall for padding/scrollbar.
-    private static final int LIST_ENTRY_LEFT_INSET = 3;
+    // Must match what WidgetListBase.reCreateListEntryWidgets actually hands to
+    // createListEntryWidget: x = posX + 2, width = browserWidth - 14. Note malilib's own
+    // browserEntriesStartX uses browserPaddingX (3) instead, so its entry hit test sits
+    // 1 px right of where it draws — follow the drawing, since these constants position
+    // the column headers over the rows.
+    private static final int LIST_ENTRY_LEFT_INSET = 2;
     private static final int LIST_ENTRY_WIDTH_TRIM = 14;
 
     // Full-width columns fit comfortably at 620 px. Between 480 and 619 px a compact

@@ -9,6 +9,7 @@ import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.Identifier;
 
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 /**
@@ -17,6 +18,11 @@ import java.util.function.Consumer;
  * <p>The vanilla {@code Checkbox} always renders a 17 px square in 26.2. That is
  * appropriate for option screens, but it overwhelms the title area of a compact
  * container screen.</p>
+ *
+ * <p>The checked state is read from a supplier on every render and every click rather
+ * than cached in a field: the owning state can change under an open screen (a party
+ * member unmarking the same chest arrives as a silent sync), and a cached copy would
+ * then render stale and send the wrong value on the next click.</p>
  */
 public final class CompactCheckbox extends AbstractButton {
     private static final Identifier SELECTED_HIGHLIGHTED_SPRITE =
@@ -28,29 +34,28 @@ public final class CompactCheckbox extends AbstractButton {
     private static final Identifier SPRITE =
             Identifier.withDefaultNamespace("widget/checkbox");
 
+    private final BooleanSupplier selectedState;
     private final Consumer<Boolean> onValueChange;
-    private boolean selected;
 
     public CompactCheckbox(
             int x,
             int y,
             int size,
             Component message,
-            boolean selected,
+            BooleanSupplier selectedState,
             Consumer<Boolean> onValueChange) {
         super(x, y, size, size, message);
-        this.selected = selected;
+        this.selectedState = selectedState;
         this.onValueChange = onValueChange;
     }
 
     @Override
     public void onPress(InputWithModifiers input) {
-        this.selected = !this.selected;
-        this.onValueChange.accept(this.selected);
+        this.onValueChange.accept(!this.selected());
     }
 
     public boolean selected() {
-        return this.selected;
+        return this.selectedState.getAsBoolean();
     }
 
     @Override
@@ -60,7 +65,7 @@ public final class CompactCheckbox extends AbstractButton {
             int mouseY,
             float partialTick) {
         Identifier sprite;
-        if (this.selected) {
+        if (this.selected()) {
             sprite = this.isHoveredOrFocused() ? SELECTED_HIGHLIGHTED_SPRITE : SELECTED_SPRITE;
         } else {
             sprite = this.isHoveredOrFocused() ? HIGHLIGHTED_SPRITE : SPRITE;
@@ -81,7 +86,7 @@ public final class CompactCheckbox extends AbstractButton {
         if (this.active) {
             output.add(
                     NarratedElementType.USAGE,
-                    Component.translatable(this.selected
+                    Component.translatable(this.selected()
                             ? "narration.checkbox.usage.focused.uncheck"
                             : "narration.checkbox.usage.focused.check"));
         }

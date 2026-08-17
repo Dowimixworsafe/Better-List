@@ -147,7 +147,7 @@ public abstract class AbstractContainerScreenMixin extends net.minecraft.client.
                 controlY,
                 BML_TRACKING_CHECKBOX_SIZE,
                 BML_TRACKING_TOOLTIP,
-                ContainerDataManager.isContainerMarked(cid),
+                () -> ContainerDataManager.isContainerMarked(cid),
                 selected -> ContainerDataManager.setContainerMarked(cid, selected));
         this.bml_TrackingCheckboxInstance.setTooltip(Tooltip.create(BML_TRACKING_TOOLTIP));
         this.addRenderableWidget(this.bml_TrackingCheckboxInstance);
