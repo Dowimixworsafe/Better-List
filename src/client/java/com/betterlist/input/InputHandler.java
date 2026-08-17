@@ -228,21 +228,33 @@ public class InputHandler implements IKeybindProvider, IHotkeyCallback {
     /**
      * A placement count that keeps itself off Litematica's info HUD.
      *
-     * {@code TaskProcessChunkBase.init} registers every count task as an info-HUD renderer.
-     * For an automatic background recount that meant "Material list … chunks remaining"
-     * blinking on screen every 10 seconds — exactly the noise the quiet path exists to avoid.
-     * Unregistering right after init leaves the counting itself untouched.
+     * The registration happens in {@code TaskProcessChunkBase}'s CONSTRUCTOR, not in
+     * {@code init()} — and {@code TaskScheduler.runTasks} never calls {@code init()} at all
+     * (its loop is shouldRemove → canExecute → execute → stop). So unregistering has to
+     * happen the moment the task is built; anywhere later and the renderer stays live for
+     * the task's whole run, which is exactly the fraction of a second that "Material list …
+     * chunks remaining" flashed on screen every 10 seconds.
+     *
+     * {@code TaskCountBlocksBase.onStop} removes it again when the count finishes; removing
+     * an entry that is not in the list is a no-op, so the double removal is harmless.
      */
     private static final class QuietCountTask
             extends fi.dy.masa.litematica.scheduler.tasks.TaskCountBlocksPlacement {
 
         QuietCountTask(SchematicPlacement placement, MaterialListBase materialList, boolean ignoreState) {
             super(placement, materialList, ignoreState);
+            hideFromInfoHud();
         }
 
         @Override
         public void init() {
             super.init();
+            hideFromInfoHud();
+        }
+
+        // Private on purpose: safe to call from the constructor, and InfoHud only does an
+        // identity removal from a list, so it never touches this half-built instance.
+        private void hideFromInfoHud() {
             fi.dy.masa.litematica.render.infohud.InfoHud.getInstance()
                     .removeInfoHudRenderer(this, false);
         }
