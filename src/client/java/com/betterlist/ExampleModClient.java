@@ -127,6 +127,7 @@ public class ExampleModClient implements ClientModInitializer {
 			hudTick = 0;
 			lastDimensionId = null;
 			InputHandler.clearLastGoodEntries();
+			InputHandler.cancelQuietRecounts();
 			ChestHighlightManager.clear();
 			ChestSearchManager.clear();
 			HudOverlayManager.disable();
@@ -204,6 +205,10 @@ public class ExampleModClient implements ClientModInitializer {
 				}
 				lastDimensionId = dim;
 			}
+
+			// Retire quiet recounts that finished or got stuck — a stuck one leaves Litematica's
+			// "chunks remaining" overlay on screen and blocks every later recount.
+			InputHandler.tickQuietRecounts();
 
 			// Drop tracked chests that no longer exist, re-key the ones that changed identity.
 			if (client.level != null && ++chestPruneTick >= CHEST_PRUNE_INTERVAL) {

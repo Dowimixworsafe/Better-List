@@ -217,6 +217,14 @@ public class InputHandler implements IKeybindProvider, IHotkeyCallback {
         lastGoodEntries = null;
     }
 
+    // Quiet recounts we scheduled ourselves. Tracked individually so cancelling never touches
+    // a count task the player started from Litematica's own material list GUI.
+    private static final List<fi.dy.masa.litematica.scheduler.tasks.TaskCountBlocksPlacement>
+            quietRecounts = new ArrayList<>();
+    private static long quietRecountScheduledAt = 0L;
+    // A recount that hasn't finished in this long is waiting for chunks that are not coming.
+    private static final long QUIET_RECOUNT_TIMEOUT_MS = 30_000L;
+
     public static void scheduleQuietRecount(List<SchematicPlacement> placements) {
         Minecraft mc = Minecraft.getInstance();
         if (placements == null || placements.isEmpty() || mc.player == null || mc.level == null) return;
@@ -231,9 +239,67 @@ public class InputHandler implements IKeybindProvider, IHotkeyCallback {
             if (mlb == null) continue;
             net.minecraft.core.BlockPos origin = p.getOrigin();
             if (origin == null || !mc.level.hasChunkAt(origin)) continue;
-            scheduler.scheduleTask(
-                    new fi.dy.masa.litematica.scheduler.tasks.TaskCountBlocksPlacement(p, mlb, ignoreState), 20);
+            fi.dy.masa.litematica.scheduler.tasks.TaskCountBlocksPlacement task =
+                    new fi.dy.masa.litematica.scheduler.tasks.TaskCountBlocksPlacement(p, mlb, ignoreState);
+            scheduler.scheduleTask(task, 20);
+            quietRecounts.add(task);
         }
+        if (!quietRecounts.isEmpty()) quietRecountScheduledAt = System.currentTimeMillis();
+    }
+
+    /**
+     * Cancels the quiet recounts we scheduled, and with them their Litematica info-HUD line.
+     *
+     * {@code TaskScheduler.removeTask} calls the task's {@code stop()}, and
+     * {@code TaskCountBlocksBase.onStop()} unregisters itself from the InfoHud unconditionally.
+     * That is the ONLY thing that clears the "Material list … chunks remaining" overlay —
+     * nothing in Litematica removes it on its own, so a task that never finishes leaves the
+     * text on screen forever.
+     */
+    public static void cancelQuietRecounts() {
+        if (quietRecounts.isEmpty()) return;
+        fi.dy.masa.litematica.scheduler.TaskScheduler scheduler =
+                fi.dy.masa.litematica.scheduler.TaskScheduler.getInstanceClient();
+        for (var task : quietRecounts) scheduler.removeTask(task);
+        quietRecounts.clear();
+    }
+
+    /**
+     * Retires quiet recounts that are done or will never finish.
+     *
+     * Two ways one gets stuck: the placement it counts is deleted or disabled (its chunks stop
+     * being processable), or the player walks away and the chunks unload. Both leave the task
+     * parked in the scheduler — which also means the {@code hasTask} guard above silently
+     * blocks every future recount, so the list quietly stops updating as well.
+     */
+    public static void tickQuietRecounts() {
+        if (quietRecounts.isEmpty()) return;
+
+        fi.dy.masa.litematica.scheduler.TaskScheduler scheduler =
+                fi.dy.masa.litematica.scheduler.TaskScheduler.getInstanceClient();
+        // A task the scheduler already dropped finished normally and cleaned up after itself.
+        var running = scheduler.getAllTasks();
+        quietRecounts.removeIf(task -> !running.contains(task));
+        if (quietRecounts.isEmpty()) return;
+
+        if (!hasEnabledPlacement()
+                || System.currentTimeMillis() - quietRecountScheduledAt > QUIET_RECOUNT_TIMEOUT_MS) {
+            cancelQuietRecounts();
+        }
+    }
+
+    private static boolean hasEnabledPlacement() {
+        try {
+            List<SchematicPlacement> placements = fi.dy.masa.litematica.data.DataManager
+                    .getSchematicPlacementManager().getAllSchematicsPlacements();
+            if (placements == null) return false;
+            for (SchematicPlacement p : placements) {
+                if (p.isEnabled()) return true;
+            }
+        } catch (Exception ignored) {
+            // Litematica not ready (or mid-teardown) — treat as "nothing to count".
+        }
+        return false;
     }
 
     public static void applyAvailableCounts(List<MaterialListEntry> entries, net.minecraft.world.entity.player.Player player) {
