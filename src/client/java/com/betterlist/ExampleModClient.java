@@ -171,10 +171,10 @@ public class ExampleModClient implements ClientModInitializer {
 				lastDimensionId = dim;
 			}
 
-			// Forget tracked chests that no longer exist in the world.
+			// Drop tracked chests that no longer exist, re-key the ones that changed identity.
 			if (client.level != null && ++chestPruneTick >= CHEST_PRUNE_INTERVAL) {
 				chestPruneTick = 0;
-				ContainerDataManager.pruneDestroyedContainers(client.level);
+				ContainerDataManager.reconcileTrackedContainers(client.level);
 			}
 
 			// Recompute the targeted-items HUD (only when enabled).

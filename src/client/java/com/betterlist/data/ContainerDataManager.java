@@ -237,6 +237,7 @@ public class ContainerDataManager {
             containers.putIfAbsent(containerId, new HashMap<>());
         } else {
             containers.remove(containerId);
+            dropHighlight(containerId);
         }
         markDirty();
         if (PartyManager.isInParty()) {
@@ -256,16 +257,18 @@ public class ContainerDataManager {
             containers.putIfAbsent(containerId, new HashMap<>());
         } else {
             containers.remove(containerId);
+            dropHighlight(containerId);
         }
         markDirty();
     }
 
     /**
-     * Stops tracking a chest and drops its in-world outline, mirroring what the ✖ button
-     * in the chest manager does.
+     * An untracked chest must never keep its in-world outline. The chest manager is the only
+     * place that can turn a highlight off by hand, and it only lists TRACKED chests — so a
+     * chest unmarked anywhere else (the checkbox on the chest screen, a party sync, the
+     * reconcile sweep) would otherwise glow forever with no way left to stop it.
      */
-    private static void forgetContainer(String containerId) {
-        setContainerMarked(containerId, false);
+    private static void dropHighlight(String containerId) {
         if (ChestHighlightManager.isHighlighted(containerId)) {
             ChestHighlightManager.toggle(containerId);
         }
@@ -274,7 +277,7 @@ public class ContainerDataManager {
     /**
      * Drops a tracked chest the moment the local player breaks it.
      *
-     * {@link #pruneDestroyedContainers} would catch this on its next sweep anyway, but
+     * {@link #reconcileTrackedContainers} would catch this on its next sweep anyway, but
      * breaking a chest and immediately placing a new one on the same spot slips through
      * that window: the position — and therefore the id — is identical, so the fresh chest
      * would silently inherit both the marked flag and the old contents.
@@ -283,22 +286,30 @@ public class ContainerDataManager {
         String containerId = containerIdAt(level, pos);
         if (containerId == null || !isContainerMarked(containerId)) return;
         LOGGER.info("[BML] Tracked chest {} was broken — dropping it from tracking.", containerId);
-        forgetContainer(containerId);
+        setContainerMarked(containerId, false);
     }
 
     /**
-     * Drops tracked chests whose block no longer exists.
+     * Brings tracked chests back in line with what is actually in the world: drops the ones
+     * whose block is gone, and re-keys the ones whose id is no longer canonical.
      *
-     * A containerId is only a position, so without this a destroyed chest keeps feeding the
-     * "stored" column forever and a chest re-placed on the same spot comes back already
-     * marked. Catches what {@link #onBlockDestroyed} cannot see: chests broken by other
-     * players, explosions, or anything that happened while we were away.
+     * A containerId is only a position, so without the first part a destroyed chest keeps
+     * feeding the "stored" column forever and a chest re-placed on the same spot comes back
+     * already marked. This catches what {@link #onBlockDestroyed} cannot see: chests broken
+     * by other players, explosions, anything that happened while we were away.
+     *
+     * The second part covers a subtler case. A double chest is keyed by its smaller half, so
+     * marking a SINGLE chest and later extending it into a double moves the canonical id to
+     * the newly placed neighbour. The stored key still points at a real chest block, so it
+     * survives the liveness check — but the chest screen now derives the OTHER id, which is
+     * why such a chest shows up in the chest manager with its checkbox unticked. Re-key it
+     * rather than dropping it, so the remembered contents are not thrown away.
      *
      * Only the CURRENT dimension is examined, and only positions whose chunk is loaded:
      * client-side an unloaded chunk reads back as air, so validating those would wipe every
      * chest the player merely happens to be standing away from.
      */
-    public static void pruneDestroyedContainers(Level level) {
+    public static void reconcileTrackedContainers(Level level) {
         if (level == null) return;
         String currentDim = level.dimension().identifier().toString();
 
@@ -307,13 +318,37 @@ public class ContainerDataManager {
 
             BlockPos pos = ChestHighlightManager.posOf(containerId);
             if (pos == null || !level.hasChunkAt(pos)) continue;
-            // Any Container block entity counts — a modded chest reusing the vanilla screen
-            // is trackable, and a false prune costs real data while a false keep costs nothing.
-            if (level.getBlockEntity(pos) instanceof Container) continue;
 
-            LOGGER.info("[BML] Tracked chest {} no longer exists — dropping it from tracking.",
-                    containerId);
-            forgetContainer(containerId);
+            // Any Container block entity counts — a modded chest reusing the vanilla screen
+            // is trackable, and a false drop costs real data while a false keep costs nothing.
+            if (!(level.getBlockEntity(pos) instanceof Container)) {
+                LOGGER.info("[BML] Tracked chest {} no longer exists — dropping it from tracking.",
+                        containerId);
+                setContainerMarked(containerId, false);
+                continue;
+            }
+
+            String canonical = containerIdAt(level, pos);
+            if (canonical == null || canonical.equals(containerId)) continue;
+
+            boolean wasHighlighted = ChestHighlightManager.isHighlighted(containerId);
+            Map<String, Integer> contents = getContainerContents(containerId);
+            boolean canonicalAlreadyTracked = isContainerMarked(canonical);
+
+            setContainerMarked(containerId, false);
+
+            if (canonicalAlreadyTracked) {
+                // Both halves ended up tracked separately. They are one physical chest, and a
+                // scan writes ALL its slots under one id — summing would double the counts.
+                LOGGER.info("[BML] Tracked chest {} is the same chest as {} — dropping the duplicate.",
+                        containerId, canonical);
+            } else {
+                LOGGER.info("[BML] Tracked chest {} is now keyed as {} — re-keying it.",
+                        containerId, canonical);
+                setContainerMarked(canonical, true);
+                updateContainerItems(canonical, contents);
+                if (wasHighlighted) ChestHighlightManager.toggle(canonical);
+            }
         }
     }
 

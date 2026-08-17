@@ -105,7 +105,6 @@ public class GuiBmlChests extends GuiBase {
             this.addButton(new ButtonGeneric(colActions + 2 * (BTN_SIZE + 4), startY, BTN_SIZE, BTN_SIZE, "§c✖"),
                     com.betterlist.util.BmlButtons.leftClick(() -> {
                 ContainerDataManager.setContainerMarked(rawCoord, false);
-                if (ChestHighlightManager.isHighlighted(rawCoord)) ChestHighlightManager.toggle(rawCoord);
                 refreshList();
                 this.initGui();
             }));
