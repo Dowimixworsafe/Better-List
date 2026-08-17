@@ -2,6 +2,7 @@ package com.betterlist;
 
 import com.betterlist.config.ModConfig;
 import com.betterlist.data.ChestHighlightManager;
+import com.betterlist.data.ChestSearchManager;
 import com.betterlist.data.ContainerDataManager;
 import com.betterlist.data.HudOverlayManager;
 import com.betterlist.data.MaterialStateManager;
@@ -32,6 +33,7 @@ import java.util.List;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 @Environment(EnvType.CLIENT)
 public class ExampleModClient implements ClientModInitializer {
@@ -64,8 +66,21 @@ public class ExampleModClient implements ClientModInitializer {
 	// Last dimension seen, to detect an in-place world swap (which does NOT fire DISCONNECT).
 	private static String lastDimensionId = null;
 
-	// Outline color for highlighted chests (bright green, full alpha).
-	private static final Color4f CHEST_HIGHLIGHT_COLOR = Color4f.fromColor(0x55FF55, 1.0f);
+	/** 0..1 triangle wave over the given period — a cheap "breathing" factor for outlines. */
+	private static float pulse(long nowMillis, long periodMillis) {
+		float phase = (nowMillis % periodMillis) / (float) periodMillis;
+		return phase < 0.5f ? phase * 2.0f : (1.0f - phase) * 2.0f;
+	}
+
+	/**
+	 * Position to outline for a containerId, or null if it is not in the dimension we are
+	 * looking at — coordinates from another dimension mean nothing to the current camera.
+	 */
+	private static BlockPos highlightPos(String containerId, String currentDim) {
+		String dim = ChestHighlightManager.dimensionOf(containerId);
+		if (dim != null && !dim.equals(currentDim)) return null;
+		return ChestHighlightManager.posOf(containerId);
+	}
 
 	@Override
 	public void onInitializeClient() {
@@ -113,27 +128,46 @@ public class ExampleModClient implements ClientModInitializer {
 			lastDimensionId = null;
 			InputHandler.clearLastGoodEntries();
 			ChestHighlightManager.clear();
+			ChestSearchManager.clear();
 			HudOverlayManager.disable();
 		});
 
-		// In-world highlighting of tracked chests (through walls), driven by GuiBmlChests.
+		// In-world highlighting of chests (through walls). Two independent sources that must
+		// never be mistaken for one another: the 💡 toggle in GuiBmlChests, and chests holding
+		// an item the player left-clicked on the material list.
 		LevelRenderEvents.AFTER_TRANSLUCENT_FEATURES.register(context -> {
-			if (ChestHighlightManager.all().isEmpty()) return;
+			Set<String> tracked = ChestHighlightManager.all();
+			Set<String> searchHits = ChestSearchManager.matchingContainers();
+			if (tracked.isEmpty() && searchHits.isEmpty()) return;
+
 			Minecraft mc = Minecraft.getInstance();
 			if (mc.level == null) return;
 
 			String currentDim = mc.level.dimension().identifier().toString();
-			float partialTicks = mc.getDeltaTracker().getGameTimeDeltaPartialTick(false);
+			// Wall-clock rather than game time: the pulse should keep breathing while paused
+			// or while the game is running slow, and it drives nothing but appearance.
+			long now = System.currentTimeMillis();
 
-			for (String containerId : ChestHighlightManager.all()) {
-				// Draw only chests in the current dimension (coords from another dimension
-				// make no sense for the current camera).
-				String dim = ChestHighlightManager.dimensionOf(containerId);
-				if (dim != null && !dim.equals(currentDim)) continue;
-				BlockPos pos = ChestHighlightManager.posOf(containerId);
+			for (String containerId : tracked) {
+				BlockPos pos = highlightPos(containerId, currentDim);
 				if (pos == null) continue;
-				// true = render through walls (NO_DEPTH pipeline).
-				RenderUtils.renderBlockOutline(pos, 0.002f, 2.0f, CHEST_HIGHLIGHT_COLOR, true);
+				// Slow, soft breathing green — "I asked for this chest".
+				float pulse = pulse(now, 2400L);
+				RenderUtils.renderBlockOutline(pos, 0.002f + 0.010f * pulse, 2.0f,
+						Color4f.fromColor(0x55FF55, 0.55f + 0.45f * pulse), true);
+			}
+
+			for (String containerId : searchHits) {
+				BlockPos pos = highlightPos(containerId, currentDim);
+				if (pos == null) continue;
+				// Faster amber pulse plus a second, wider outline. The nesting is what makes
+				// this readable at a glance next to a plain tracked chest, not just the hue —
+				// colour alone is a poor signal for anyone who can't separate green from amber.
+				float pulse = pulse(now, 900L);
+				RenderUtils.renderBlockOutline(pos, 0.004f, 3.0f,
+						Color4f.fromColor(0xFFC24A, 0.65f + 0.35f * pulse), true);
+				RenderUtils.renderBlockOutline(pos, 0.030f + 0.025f * pulse, 1.5f,
+						Color4f.fromColor(0xFFC24A, 0.45f - 0.30f * pulse), true);
 			}
 		});
 

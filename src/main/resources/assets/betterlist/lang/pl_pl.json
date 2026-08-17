@@ -46,6 +46,8 @@
 	"bml.tt.stored": "W skrzyniach",
 	"bml.tt.miss": "Brakuje",
 	"bml.tt.focused_by": "Targetują:",
+	"bml.tt.in_chests": "W %s skrzyni(ach) — %s szt.",
+	"bml.tt.click_hint": "LPM: szukaj w skrzyniach · PPM: cel",
 
 	"bml.key.open_gui": "Otwórz listę materiałów",
 	"bml.key.open_gui.c": "Otwórz listę materiałów Better List.",

@@ -46,6 +46,8 @@
 	"bml.tt.stored": "Stored",
 	"bml.tt.miss": "Missing",
 	"bml.tt.focused_by": "Focused by:",
+	"bml.tt.in_chests": "In %s chest(s) — %s total",
+	"bml.tt.click_hint": "LMB: find in tracked chests · RMB: target",
 
 	"bml.key.open_gui": "Open material list",
 	"bml.key.open_gui.c": "Open the Better List material list.",

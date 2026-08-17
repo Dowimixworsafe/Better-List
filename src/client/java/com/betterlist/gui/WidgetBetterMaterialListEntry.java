@@ -181,6 +181,23 @@ public class WidgetBetterMaterialListEntry extends WidgetListEntryBase<MaterialL
             guiContext.fill(iconX + 16, iconY,     iconX + 17, iconY + 16, c); // right
         }
 
+        // Corner ticks for items being searched for in tracked chests (left-click). Deliberately
+        // NOT a full border: that shape already means "my target", and one item can be both at
+        // once, so the two markers have to stay distinguishable when they overlap.
+        if (com.betterlist.data.ChestSearchManager.isSearched(itemId)) {
+            final int tick = 0xFFFFC24A; // amber — same hue as the search outline in the world
+            final int len = 6;
+            int x0 = iconX - 2, y0 = iconY - 2, x1 = iconX + 18, y1 = iconY + 18;
+            guiContext.fill(x0, y0, x0 + len, y0 + 1, tick);
+            guiContext.fill(x0, y0, x0 + 1, y0 + len, tick);
+            guiContext.fill(x1 - len, y0, x1, y0 + 1, tick);
+            guiContext.fill(x1 - 1, y0, x1, y0 + len, tick);
+            guiContext.fill(x0, y1 - 1, x0 + len, y1, tick);
+            guiContext.fill(x0, y1 - len, x0 + 1, y1, tick);
+            guiContext.fill(x1 - len, y1 - 1, x1, y1, tick);
+            guiContext.fill(x1 - 1, y1 - len, x1, y1, tick);
+        }
+
         // Heads of other players targeting this item — only in a party and when focus is visible.
         if (com.betterlist.party.PartyManager.isInParty() && FocusManager.isFocusVisible()) {
             List<FocusManager.PlayerFocus> others = FocusManager.getTargetersWithNames(itemId);

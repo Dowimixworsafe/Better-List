@@ -463,6 +463,15 @@ public class GuiBetterMaterialList
                 ? com.betterlist.party.FocusManager.getTargetersForTooltip(itemId)
                 : java.util.Collections.emptyList();
 
+        // Where this item sits in tracked chests — the payoff of a left-click search.
+        boolean searched = com.betterlist.data.ChestSearchManager.isSearched(itemId);
+        String searchLine = searched
+                ? "§6🔎 " + com.betterlist.util.BmlLang.tr("bml.tt.in_chests",
+                        com.betterlist.data.ChestSearchManager.containersHolding(itemId).size(),
+                        com.betterlist.data.ChestSearchManager.totalStored(itemId))
+                : null;
+        String hintLine = "§7" + com.betterlist.util.BmlLang.tr("bml.tt.click_hint");
+
         int pad = 6;
         int iconSize = 16;
         int lineH = 11;
@@ -472,6 +481,8 @@ public class GuiBetterMaterialList
                     Math.max(font.width(needLine),
                     Math.max(font.width(placeLine),
                     Math.max(font.width(storeLine), font.width(missLine)))));
+        textW = Math.max(textW, font.width(hintLine));
+        if (searchLine != null) textW = Math.max(textW, font.width(searchLine));
         if (!focusers.isEmpty()) {
             textW = Math.max(textW, font.width(focusHeader));
             for (var pf : focusers)
@@ -479,6 +490,8 @@ public class GuiBetterMaterialList
         }
         int w = pad + iconSize + 4 + textW + pad;
         int h = pad + iconSize + 4 + lineH * 4 + pad;
+        if (searchLine != null) h += lineH;
+        h += lineH + 4; // hint row, with a little breathing room above it
         if (!focusers.isEmpty()) h += lineH + focusers.size() * faceRowH + 4;
 
         int tx = mouseX + 14;
@@ -500,8 +513,16 @@ public class GuiBetterMaterialList
         int missColor = actualMissing > 0 ? 0xFFFF5555 : 0xFF55FF55;
         guiContext.drawString(font, missLine,  tx + pad, ly + lineH * 3,  missColor,  false);
 
+        int extraY = ly + lineH * 4;
+        if (searchLine != null) {
+            guiContext.drawString(font, searchLine, tx + pad, extraY, 0xFFFFC24A, false);
+            extraY += lineH;
+        }
+        guiContext.drawString(font, hintLine, tx + pad, extraY + 4, 0xFF888888, false);
+        extraY += lineH + 4;
+
         if (!focusers.isEmpty()) {
-            int fy = ly + lineH * 4 + 4;
+            int fy = extraY + 4;
             guiContext.fill(tx + pad, fy - 1, tx + w - pad, fy, 0x40FFFFFF);
             fy += 2;
             guiContext.drawString(font, focusHeader, tx + pad, fy, 0xFFAAAAAA, false);
@@ -771,7 +792,21 @@ public class GuiBetterMaterialList
                     && mouseY >= btnPlayers.getY() && mouseY < btnPlayers.getY() + btnPlayers.getHeight();
             if (!onBtn) showPlayerDropdown = false;
         }
-        return super.mouseClicked(event, wasFocused);
+
+        boolean consumed = super.mouseClicked(event, wasFocused);
+
+        // Left-click a row to search tracked chests for that item — the mirror of right-click
+        // targeting. Handled here rather than by polling GLFW like the right-click path,
+        // because only here can we tell that a widget already took the click: the ✔ checkbox
+        // sits inside the row, and polling would fire the search on every checkbox tick too.
+        if (!consumed && event.button() == 0 && this.hoveredEntry != null) {
+            String itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM
+                    .getKey(this.hoveredEntry.getStack().getItem()).toString();
+            com.betterlist.data.ChestSearchManager.toggle(itemId);
+            return true;
+        }
+
+        return consumed;
     }
 
     // ── Tick ──────────────────────────────────────────────────────────────────
