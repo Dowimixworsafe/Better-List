@@ -12,6 +12,8 @@ Track what you've placed, what's stored in your chests, and what each teammate i
 - **Tracked chests → live "stored" counts** — mark any chest as storage and its contents are counted into a *Stored* column, so you instantly see what you still need vs. what's already in bulk storage.
   - 🔍 **Preview** a tracked chest's remembered contents without walking to it.
   - 💡 **Highlight** tracked chests in the world — visible **through walls**.
+  - Tracked chests are forgotten automatically once the chest is gone, so a broken chest stops padding your *Stored* count.
+- **Find an item in your chests** — left-click any row to search for that item; every tracked chest holding it lights up in the world with its own pulsing outline, distinct from the manual 💡 highlight. The tooltip tells you how many chests hold it and how many you have.
 - **Targeted-items HUD** — right-click items to *target* them, then toggle a compact top-right HUD showing `have / need`. Items drop off the HUD automatically once you've gathered enough. Works **solo**.
 - **Party sync** — invite players, share schematic placements, and sync checklist + stored progress between everyone. See which teammates are focusing which items (colored borders + player heads on the list).
 - **Filtering & sorting** — search, hide fully-placed / fully-stored / checked items, sort by any column, filter the list to a specific player's targets.
