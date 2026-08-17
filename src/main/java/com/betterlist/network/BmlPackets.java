@@ -21,8 +21,13 @@ public class BmlPackets {
      * Data protocol version. Bumped whenever the meaning/shape of sync fields changes.
      * v2: chests are global (keyed by containerId), checkedItems keyed by a stable
      * "checklistKey" (sorted enabled-placement names) — incompatible with v1.
+     * v3: field shapes are unchanged from v2, but tracked chests are now expected to be
+     * pruned once their block is gone. A v2 member never prunes, and its SYNC_FULL_STATE
+     * pushes destroyed chests back onto everyone else — where they keep inflating "stored"
+     * until that member walks into range again. Same wire, different guarantees, so the
+     * mismatch warning is worth firing even though nothing fails outright.
      */
-    public static final String PROTOCOL_VERSION = "2";
+    public static final String PROTOCOL_VERSION = "3";
 
     // ── Handshake ──────────────────────────────────────────────────────────────
     public static final String BML_HELLO     = "BML_HELLO";
