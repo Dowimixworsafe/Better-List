@@ -44,6 +44,15 @@ Either way, party members just need the **same mod version** on their clients â€
 
 Release notes live in [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
+## Minecraft versions
+
+`main` targets the latest supported Minecraft release. Older ones live on maintenance branches.
+
+| Minecraft | Branch |
+|-----------|--------|
+| 26.2 | `main` |
+| 26.1.2 | [`mc/26.1.2`](https://github.com/Dowimixworsafe/Better-List/tree/mc/26.1.2) |
+
 ## Building
 
 Requires the Java 25 toolchain.

@@ -61,7 +61,7 @@ All keybinds are rebindable in the config screen.
 - **Fabric API**
 - **MaLiLib**
 - **Litematica**
-- Minecraft **26.2**
+- Minecraft **26.2** or **26.1.2** — pick the matching file under *Versions*
 
 Party sync works through a server-side relay (a Paper/Bukkit plugin or the built-in Fabric server path); without it, all single-player features still work normally.
 
