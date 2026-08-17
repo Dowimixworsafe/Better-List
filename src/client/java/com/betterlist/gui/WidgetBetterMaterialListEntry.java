@@ -30,11 +30,14 @@ public class WidgetBetterMaterialListEntry extends WidgetListEntryBase<MaterialL
         super(x, y, width, height, entryPair, listIndex);
         this.parent = parent;
 
-        int entryWidth = parent.getLayoutMode() == GuiBetterMaterialList.LayoutMode.SINGLE ? width : width / 2;
+        GuiBetterMaterialList.LayoutMode mode = parent.getLayoutMode();
+        LayoutMetrics.Section leftSection = LayoutMetrics.section(x, width, mode, 0);
 
-        setupLeftEntry(entryPair.getLeft(), x, y, entryWidth, height);
+        setupLeftEntry(entryPair.getLeft(), leftSection.x(), y, leftSection.width(), height);
         if (entryPair.getRight() != null) {
-            setupRightEntry(entryPair.getRight(), x + entryWidth, y, entryWidth, height);
+            LayoutMetrics.Section rightSection = LayoutMetrics.section(x, width, mode, 1);
+            setupRightEntry(
+                    entryPair.getRight(), rightSection.x(), y, rightSection.width(), height);
         }
     }
 
@@ -48,7 +51,8 @@ public class WidgetBetterMaterialListEntry extends WidgetListEntryBase<MaterialL
         // Three-state glyph: green = user-checked, yellow = auto-fulfilled, red = missing
         String glyph = userChecked ? "§a✔" : (actuallyMissing <= 0 ? "§e✔" : "§c✖");
 
-        int bx = x + width - BmlLayoutConstants.CHECKBOX_WIDTH - BmlLayoutConstants.CHECKBOX_MARGIN;
+        LayoutMetrics.Columns columns = parent.getLayoutMetrics().columns(x, width);
+        int bx = columns.checkboxStart();
         int by = y + (height - BmlLayoutConstants.CHECKBOX_WIDTH) / 2;
         this.leftCheckbox = new ButtonGeneric(bx, by, BmlLayoutConstants.CHECKBOX_WIDTH, BmlLayoutConstants.CHECKBOX_WIDTH, glyph, new String[0]);
         this.addButton(this.leftCheckbox, com.betterlist.util.BmlButtons.leftClick(() -> {
@@ -69,7 +73,8 @@ public class WidgetBetterMaterialListEntry extends WidgetListEntryBase<MaterialL
         int actuallyMissing = Math.max(0, entry.getCountMissing() - entry.getCountAvailable());
         String glyph = userChecked ? "§a✔" : (actuallyMissing <= 0 ? "§e✔" : "§c✖");
 
-        int bx = x + width - BmlLayoutConstants.CHECKBOX_WIDTH - BmlLayoutConstants.CHECKBOX_MARGIN;
+        LayoutMetrics.Columns columns = parent.getLayoutMetrics().columns(x, width);
+        int bx = columns.checkboxStart();
         int by = y + (height - BmlLayoutConstants.CHECKBOX_WIDTH) / 2;
         this.rightCheckbox = new ButtonGeneric(bx, by, BmlLayoutConstants.CHECKBOX_WIDTH, BmlLayoutConstants.CHECKBOX_WIDTH, glyph, new String[0]);
         this.addButton(this.rightCheckbox, com.betterlist.util.BmlButtons.leftClick(() -> {
@@ -99,28 +104,45 @@ public class WidgetBetterMaterialListEntry extends WidgetListEntryBase<MaterialL
 
         MaterialListEntryPair pair = (MaterialListEntryPair) this.entry;
         GuiBetterMaterialList.LayoutMode mode = parent.getLayoutMode();
-        int entryWidth = mode == GuiBetterMaterialList.LayoutMode.SINGLE ? this.width : this.width / 2;
+        LayoutMetrics.Section leftSection = LayoutMetrics.section(this.x, this.width, mode, 0);
 
         if (pair.getLeft() != null) {
-            renderHalf(guiContext, pair.getLeft(), this.x, this.y, entryWidth, this.height);
+            renderHalf(
+                    guiContext,
+                    pair.getLeft(),
+                    leftSection.x(),
+                    this.y,
+                    leftSection.width(),
+                    this.height);
         }
 
         if (mode != GuiBetterMaterialList.LayoutMode.SINGLE) {
-            guiContext.fill(this.x + entryWidth, this.y, this.x + entryWidth + 1, this.y + this.height, 0x40FFFFFF);
+            LayoutMetrics.Section rightSection = LayoutMetrics.section(this.x, this.width, mode, 1);
+            int dividerX = rightSection.x() - 1;
+            guiContext.fill(dividerX, this.y, dividerX + 1, this.y + this.height, 0x40FFFFFF);
 
             // Hover detection for tooltip (2-col modes only)
             boolean overLeft  = pair.getLeft()  != null
-                    && mouseX >= this.x && mouseX < this.x + entryWidth
+                    && mouseX >= leftSection.x()
+                    && mouseX < leftSection.x() + leftSection.width()
                     && mouseY >= this.y && mouseY < this.y + this.height;
             boolean overRight = pair.getRight() != null
-                    && mouseX >= this.x + entryWidth + 1 && mouseX < this.x + this.width
+                    && mouseX >= rightSection.x()
+                    && mouseX < rightSection.x() + rightSection.width()
                     && mouseY >= this.y && mouseY < this.y + this.height;
             if (overLeft)       parent.setHoveredEntry(pair.getLeft(),  mouseX, mouseY);
             else if (overRight) parent.setHoveredEntry(pair.getRight(), mouseX, mouseY);
         }
 
         if (pair.getRight() != null) {
-            renderHalf(guiContext, pair.getRight(), this.x + entryWidth + 1, this.y, entryWidth - 1, this.height);
+            LayoutMetrics.Section rightSection = LayoutMetrics.section(this.x, this.width, mode, 1);
+            renderHalf(
+                    guiContext,
+                    pair.getRight(),
+                    rightSection.x(),
+                    this.y,
+                    rightSection.width(),
+                    this.height);
         }
 
         // Hover tracking for right-click targeting in SINGLE mode
@@ -168,43 +190,34 @@ public class WidgetBetterMaterialListEntry extends WidgetListEntryBase<MaterialL
         }
 
         boolean isSingle = parent.getLayoutMode() == GuiBetterMaterialList.LayoutMode.SINGLE;
-        int totalColW = isSingle ? BmlLayoutConstants.SINGLE_TOTAL_WIDTH : BmlLayoutConstants.TOTAL_WIDTH;
-
-        int checkboxEnd   = x + width - BmlLayoutConstants.CHECKBOX_MARGIN;
-        int checkboxStart = checkboxEnd   - BmlLayoutConstants.CHECKBOX_WIDTH;
-        int missingEnd    = checkboxStart - BmlLayoutConstants.COLUMN_GAP;
-        int missingStart  = missingEnd    - BmlLayoutConstants.MISSING_WIDTH;
-        int availableEnd  = missingStart  - BmlLayoutConstants.COLUMN_GAP;
-        int availableStart= availableEnd  - BmlLayoutConstants.AVAILABLE_WIDTH;
-        int placedEnd     = availableStart- BmlLayoutConstants.COLUMN_GAP;
-        int placedStart   = placedEnd     - BmlLayoutConstants.PLACED_WIDTH;
-        int totalEnd      = placedStart   - BmlLayoutConstants.COLUMN_GAP;
-        int totalStart    = totalEnd      - totalColW;
-
-        int nameX = x + BmlLayoutConstants.NAME_OFFSET_X;
-        int maxNameWidth = totalStart - nameX - BmlLayoutConstants.COLUMN_GAP;
+        LayoutMetrics.Columns columns = parent.getLayoutMetrics().columns(x, width);
+        int maxNameWidth = columns.maxNameWidth();
 
         String displayName = name;
-        if (font.width(displayName) > maxNameWidth && maxNameWidth > 0) {
+        if (maxNameWidth <= 0) {
+            displayName = "";
+        } else if (font.width(displayName) > maxNameWidth) {
             while (font.width(displayName + "...") > maxNameWidth && displayName.length() > 1) {
                 displayName = displayName.substring(0, displayName.length() - 1);
             }
-            displayName = displayName + "...";
+            displayName = font.width(displayName + "...") <= maxNameWidth
+                    ? displayName + "..."
+                    : "";
         }
-        guiContext.drawString(font, displayName, nameX, textY, 0xFFFFFFFF, false);
+        guiContext.drawString(font, displayName, columns.nameStart(), textY, 0xFFFFFFFF, false);
 
         String totalStr = isSingle ? stackBreakdown(total) : String.valueOf(total);
-        guiContext.drawString(font, totalStr, totalStart, textY, 0xFFAAAAAA, false);
+        guiContext.drawString(font, totalStr, columns.totalStart(), textY, 0xFFAAAAAA, false);
 
         int colIconY = y + (height - 16) / 2;
 
-        guiContext.renderItem(new ItemStack(Items.GRASS_BLOCK), placedStart, colIconY);
-        guiContext.drawString(font, String.valueOf(placed), placedStart + 18, textY, 0xFFFFFFFF, false);
+        guiContext.renderItem(new ItemStack(Items.GRASS_BLOCK), columns.placedStart(), colIconY);
+        guiContext.drawString(font, String.valueOf(placed), columns.placedStart() + 18, textY, 0xFFFFFFFF, false);
 
-        guiContext.renderItem(new ItemStack(Items.CHEST), availableStart, colIconY);
-        guiContext.drawString(font, String.valueOf(available), availableStart + 18, textY, 0xFFFFFFFF, false);
+        guiContext.renderItem(new ItemStack(Items.CHEST), columns.availableStart(), colIconY);
+        guiContext.drawString(font, String.valueOf(available), columns.availableStart() + 18, textY, 0xFFFFFFFF, false);
 
         int missColor = actuallyMissing > 0 ? 0xFFFF5555 : 0xFF55FF55;
-        guiContext.drawString(font, String.valueOf(actuallyMissing), missingStart + 2, textY, missColor, false);
+        guiContext.drawString(font, String.valueOf(actuallyMissing), columns.missingStart() + 2, textY, missColor, false);
     }
 }
