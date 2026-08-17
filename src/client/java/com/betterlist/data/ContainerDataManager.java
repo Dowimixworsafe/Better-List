@@ -373,10 +373,26 @@ public class ContainerDataManager {
     }
 
     /**
-     * Updates a chest's contents from data received from a party member (without
-     * re-sending). We do not overwrite existing data with an EMPTY version — this
-     * prevents losing "stored" when someone pushes full state before they have scanned
-     * that chest themselves.
+     * Applies a chest scan a party member just performed.
+     *
+     * Unlike the full-state merge below this ACCEPTS an empty map. The sender physically
+     * opened that chest and saw it empty, so this is the most authoritative reading anyone
+     * has. Refusing it left everyone else counting items that were already carried away —
+     * and since a search highlight is derived from contents, it kept pointing them at a
+     * chest somebody had emptied.
+     */
+    public static void applyContainerScanSilent(String containerId, Map<String, Integer> items) {
+        if (!isValidContainerId(containerId)) return;
+        containers.put(containerId, items == null ? new HashMap<>() : new HashMap<>(items));
+        markDirty();
+    }
+
+    /**
+     * Merges a chest's contents out of a bulk full-state push (without re-sending).
+     *
+     * Here an EMPTY version is refused, because a joiner sends its whole snapshot including
+     * chests it has never opened — accepting those would wipe "stored" for everyone. Use
+     * {@link #applyContainerScanSilent} for a live scan, where empty is real information.
      */
     public static void updateContainerItemsSilent(String containerId, Map<String, Integer> items) {
         if (!isValidContainerId(containerId)) return;

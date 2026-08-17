@@ -102,7 +102,8 @@ public class BmlClientNetworking {
                 java.util.HashMap<String, Integer> items = new java.util.HashMap<>();
                 json.getAsJsonObject("items").entrySet()
                     .forEach(e -> items.put(e.getKey(), e.getValue().getAsInt()));
-                ContainerDataManager.updateContainerItemsSilent(containerId, items);
+                // A live scan by a party member — authoritative, empty included.
+                ContainerDataManager.applyContainerScanSilent(containerId, items);
             }
             case BmlPackets.SYNC_CONTAINER_MARKED -> {
                 String containerId = json.get("containerId").getAsString();

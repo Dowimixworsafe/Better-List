@@ -53,3 +53,7 @@ build_output*.txt
 # bundled server plugin has its own git repo
 
 _plugin/
+
+# local Paper server used to test the mod against the relay plugin
+
+_papertest/

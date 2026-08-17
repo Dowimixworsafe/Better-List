@@ -225,11 +225,38 @@ public class InputHandler implements IKeybindProvider, IHotkeyCallback {
     // A recount that hasn't finished in this long is waiting for chunks that are not coming.
     private static final long QUIET_RECOUNT_TIMEOUT_MS = 30_000L;
 
+    /**
+     * A placement count that keeps itself off Litematica's info HUD.
+     *
+     * {@code TaskProcessChunkBase.init} registers every count task as an info-HUD renderer.
+     * For an automatic background recount that meant "Material list … chunks remaining"
+     * blinking on screen every 10 seconds — exactly the noise the quiet path exists to avoid.
+     * Unregistering right after init leaves the counting itself untouched.
+     */
+    private static final class QuietCountTask
+            extends fi.dy.masa.litematica.scheduler.tasks.TaskCountBlocksPlacement {
+
+        QuietCountTask(SchematicPlacement placement, MaterialListBase materialList, boolean ignoreState) {
+            super(placement, materialList, ignoreState);
+        }
+
+        @Override
+        public void init() {
+            super.init();
+            fi.dy.masa.litematica.render.infohud.InfoHud.getInstance()
+                    .removeInfoHudRenderer(this, false);
+        }
+    }
+
     public static void scheduleQuietRecount(List<SchematicPlacement> placements) {
         Minecraft mc = Minecraft.getInstance();
         if (placements == null || placements.isEmpty() || mc.player == null || mc.level == null) return;
         fi.dy.masa.litematica.scheduler.TaskScheduler scheduler =
                 fi.dy.masa.litematica.scheduler.TaskScheduler.getInstanceClient();
+        // Our own tasks are tracked by hand: TaskScheduler.hasTask compares getClass().equals,
+        // so it does NOT see a subclass, and relying on it alone would let quiet recounts pile
+        // up every 10 seconds. It still answers for a count the player started manually.
+        if (!quietRecounts.isEmpty()) return;
         if (scheduler.hasTask(fi.dy.masa.litematica.scheduler.tasks.TaskCountBlocksPlacement.class)) return;
         boolean ignoreState =
                 fi.dy.masa.litematica.config.Configs.Generic.MATERIAL_LIST_IGNORE_STATE.getBooleanValue();
@@ -239,8 +266,7 @@ public class InputHandler implements IKeybindProvider, IHotkeyCallback {
             if (mlb == null) continue;
             net.minecraft.core.BlockPos origin = p.getOrigin();
             if (origin == null || !mc.level.hasChunkAt(origin)) continue;
-            fi.dy.masa.litematica.scheduler.tasks.TaskCountBlocksPlacement task =
-                    new fi.dy.masa.litematica.scheduler.tasks.TaskCountBlocksPlacement(p, mlb, ignoreState);
+            QuietCountTask task = new QuietCountTask(p, mlb, ignoreState);
             scheduler.scheduleTask(task, 20);
             quietRecounts.add(task);
         }
