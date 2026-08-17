@@ -59,6 +59,10 @@ public class ExampleModClient implements ClientModInitializer {
 	private static int autoRecountTick = 0;
 	private static final int AUTO_RECOUNT_INTERVAL = 200;
 
+	// Sweep for count tasks left behind by a deleted placement, every ~2s.
+	private static int orphanRecountTick = 0;
+	private static final int ORPHAN_RECOUNT_INTERVAL = 40;
+
 	// Sweep tracked chests for ones whose block is gone, every ~2s.
 	private static int chestPruneTick = 0;
 	private static final int CHEST_PRUNE_INTERVAL = 40;
@@ -207,8 +211,13 @@ public class ExampleModClient implements ClientModInitializer {
 			}
 
 			// Retire quiet recounts that finished or got stuck — a stuck one leaves Litematica's
-			// "chunks remaining" overlay on screen and blocks every later recount.
+			// "chunks remaining" overlay on screen and blocks every later recount. The orphan
+			// sweep runs on the slower cadence since it queries the placement manager.
 			InputHandler.tickQuietRecounts();
+			if (client.level != null && ++orphanRecountTick >= ORPHAN_RECOUNT_INTERVAL) {
+				orphanRecountTick = 0;
+				InputHandler.cancelOrphanedRecounts();
+			}
 
 			// Drop tracked chests that no longer exist, re-key the ones that changed identity.
 			if (client.level != null && ++chestPruneTick >= CHEST_PRUNE_INTERVAL) {

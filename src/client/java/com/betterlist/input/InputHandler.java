@@ -288,6 +288,28 @@ public class InputHandler implements IKeybindProvider, IHotkeyCallback {
         }
     }
 
+    /**
+     * Clears every pending placement count, including ones we did not schedule.
+     *
+     * Only safe to call when no placement is enabled: a count task always belongs to a
+     * placement, so with none left every such task is orphaned by definition and its info-HUD
+     * line can never go away on its own. This is what catches a stuck count started by the
+     * ⟳ button or from Litematica's own material list GUI, since those go through
+     * {@code reCreateMaterialList} and never pass through our scheduler bookkeeping.
+     */
+    public static void cancelOrphanedRecounts() {
+        if (hasEnabledPlacement()) return;
+
+        fi.dy.masa.litematica.scheduler.TaskScheduler scheduler =
+                fi.dy.masa.litematica.scheduler.TaskScheduler.getInstanceClient();
+        for (var task : scheduler.getAllTasks()) {
+            if (task instanceof fi.dy.masa.litematica.scheduler.tasks.TaskCountBlocksPlacement) {
+                scheduler.removeTask(task);
+            }
+        }
+        quietRecounts.clear();
+    }
+
     private static boolean hasEnabledPlacement() {
         try {
             List<SchematicPlacement> placements = fi.dy.masa.litematica.data.DataManager
