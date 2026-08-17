@@ -17,6 +17,10 @@ Tick off items per schematic as you gather them. State is saved **per server**, 
 Mark any chest as storage and its contents are counted into a **Stored** column on the list — so you instantly see how much you still need to craft vs. what's already in your bulk storage.
 - 🔍 **Preview** a chest's contents without walking to it
 - 💡 **Highlight** tracked chests in the world — visible **through walls**
+- Chests you break are forgotten automatically, so a chest that no longer exists stops padding your **Stored** count
+
+### 🔦 Find an item in your chests
+Left-click any row and every tracked chest holding that item lights up in the world, with its own pulsing outline — clearly different from the manual 💡 highlight, so you always know which is which. The tooltip tells you how many chests hold it and how many you have in total.
 
 ### 🎯 Targeted-items HUD
 Right-click items on the list to **target** them, then toggle a compact top-right HUD showing `have / need`. Items drop off the HUD automatically once you've gathered enough. Works **solo** — no party required.

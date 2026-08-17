@@ -40,7 +40,9 @@ All single-player features work without any server setup. **Party sync** additio
 - **Fabric server:** drop this same mod into the server's `mods/` folder (with Fabric API). No extra download.
 - **Bukkit-family server** (Paper, Purpur, Spigot, …): install the companion **[BetterList Integration plugin](https://github.com/Dowimixworsafe/Better-List-Integration)**.
 
-Either way, party members just need the **same mod version** on their clients.
+Either way, party members just need the **same mod version** on their clients — if someone is running a different one you'll get a one-time in-game warning, since sync guarantees can differ between versions.
+
+Release notes live in [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
 ## Building
 
