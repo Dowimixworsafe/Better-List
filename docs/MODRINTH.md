@@ -18,6 +18,8 @@ Mark any chest as storage and its contents are counted into a **Stored** column 
 - 🔍 **Preview** a chest's contents without walking to it
 - 💡 **Highlight** tracked chests in the world — visible **through walls**
 - Chests you break are forgotten automatically, so a chest that no longer exists stops padding your **Stored** count
+- Each tracked container shows its real block icon — chest, barrel, a shulker in its color, …
+- 🟪 **Shulker boxes follow their shulker** — carry it, drop it or place it elsewhere and it stays tracked. If it burns, falls into the void, despawns or gets blown up, it stays on the list in red with the reason
 
 ### 🔦 Find an item in your chests
 Left-click any row and every tracked chest holding that item lights up in the world, with its own pulsing outline — clearly different from the manual 💡 highlight, so you always know which is which. The tooltip tells you how many chests hold it and how many you have in total.
@@ -49,9 +51,9 @@ Fully translated — **English** (default) and **Polish**. Switch in *Options �
 | `H` | Toggle chest highlighting |
 | `J` | Toggle targeted-items HUD |
 | `O` | Open party screen |
-| `,` | Open config |
+| — | Open config (unbound by default) |
 
-All keybinds are rebindable in the config screen.
+The config is also in the mod list of any MaLiLib config screen (Litematica, MiniHUD, …) and in **Mod Menu**. All keybinds are MaLiLib hotkeys — rebindable, with key combinations and conflict detection.
 
 ---
 
@@ -61,6 +63,7 @@ All keybinds are rebindable in the config screen.
 - **Fabric API**
 - **MaLiLib**
 - **Litematica**
+- **Mod Menu** — optional
 - Minecraft **26.2** or **26.1.2** — pick the matching file under *Versions*
 
 Party sync works through a server-side relay (a Paper/Bukkit plugin or the built-in Fabric server path); without it, all single-player features still work normally.
