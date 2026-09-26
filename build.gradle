@@ -47,6 +47,9 @@ dependencies {
 
 	implementation "maven.modrinth:malilib:0.29.3"
 	implementation "maven.modrinth:litematica:0.28.3"
+
+	compileOnly "maven.modrinth:modmenu:20.0.3"
+	localRuntime "maven.modrinth:modmenu:20.0.3"
 }
 
 processResources {

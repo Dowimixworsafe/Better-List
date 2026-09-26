@@ -2,6 +2,7 @@ package com.betterlist.gui;
 
 import com.betterlist.config.ModConfig;
 import com.betterlist.input.InputHandler;
+import fi.dy.masa.malilib.gui.GuiBase;
 import fi.dy.masa.malilib.gui.GuiConfigsBase;
 import fi.dy.masa.malilib.gui.button.ButtonGeneric;
 import java.util.ArrayList;
@@ -29,7 +30,21 @@ public class GuiConfigs extends GuiConfigsBase {
 
         // Back arrow in the top-left corner — returns to the material list.
         this.addButton(new ButtonGeneric(6, 6, 40, 20, "§e" + com.betterlist.util.BmlLang.tr("bml.gui.back")),
-                com.betterlist.util.BmlButtons.leftClick(InputHandler::openMaterialList));
+                com.betterlist.util.BmlButtons.leftClick(this::goBack));
+    }
+
+    private void goBack() {
+        if (this.getParent() != null) {
+            GuiBase.openGui(this.getParent());
+        } else {
+            InputHandler.openMaterialList();
+        }
+    }
+
+    @Override
+    public boolean shouldCloseOnEsc() {
+        goBack();
+        return false;
     }
 
     @Override
