@@ -155,14 +155,12 @@ public class PlacementSyncHelper {
         SchematicPlacementManager mgr = DataManager.getSchematicPlacementManager();
         List<SchematicPlacement> allPlacements = mgr.getAllSchematicsPlacements();
 
-        if (allPlacements == null || allPlacements.isEmpty()) {
-            return; // nie mamy nic do odeslania
-        }
-
-        for (SchematicPlacement placement : allPlacements) {
-            if (!placement.isEnabled()) continue;
-            // Send directly to that player
-            sendSinglePlacement(placement, requestingNick);
+        if (allPlacements != null) {
+            for (SchematicPlacement placement : allPlacements) {
+                if (!placement.isEnabled()) continue;
+                // Send directly to that player
+                sendSinglePlacement(placement, requestingNick);
+            }
         }
         // Also push full state (stored + checks) so the joining player doesn't have to
         // scan chests from scratch.
