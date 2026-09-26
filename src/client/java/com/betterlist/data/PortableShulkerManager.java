@@ -170,6 +170,7 @@ public final class PortableShulkerManager {
             clean.addProperty("lastHolder", before.get("holder").getAsString());
         }
         JsonObject previous = tracked.put(id, clean);
+        ContainerDataManager.rememberBlock(id);
         if (isLost(id) && ChestHighlightManager.isHighlighted(id)) ChestHighlightManager.toggle(id);
         if ("placed".equals(clean.get("state").getAsString())) ContainerDataManager.setContainerMarkedSilent(location, false);
         dirty |= !clean.equals(previous);

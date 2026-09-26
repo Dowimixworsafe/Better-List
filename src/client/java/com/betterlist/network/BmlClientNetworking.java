@@ -109,11 +109,13 @@ public class BmlClientNetworking {
                     .forEach(e -> items.put(e.getKey(), e.getValue().getAsInt()));
                 // A live scan by a party member — authoritative, empty included.
                 ContainerDataManager.applyContainerScanSilent(containerId, items);
+                if (json.has("block")) ContainerDataManager.setBlockSilent(containerId, json.get("block").getAsString());
             }
             case BmlPackets.SYNC_CONTAINER_MARKED -> {
                 String containerId = json.get("containerId").getAsString();
                 boolean marked = json.get("marked").getAsBoolean();
                 ContainerDataManager.setContainerMarkedSilent(containerId, marked);
+                if (marked && json.has("block")) ContainerDataManager.setBlockSilent(containerId, json.get("block").getAsString());
             }
             case BmlPackets.SYNC_PLACEMENT       -> PlacementSyncHelper.applyPlacement(json);
             case BmlPackets.SYNC_PLACEMENT_REQUEST -> PlacementSyncHelper.handlePlacementRequest(json);
@@ -156,6 +158,10 @@ public class BmlClientNetworking {
                     .forEach(ie -> items.put(ie.getKey(), ie.getValue().getAsInt()));
                 ContainerDataManager.updateContainerItemsSilent(containerEntry.getKey(), items);
             });
+        }
+        if (json.has("containerBlocks")) {
+            json.getAsJsonObject("containerBlocks").entrySet().forEach(e ->
+                ContainerDataManager.setBlockSilent(e.getKey(), e.getValue().getAsString()));
         }
     }
 
@@ -224,6 +230,8 @@ public class BmlClientNetworking {
         JsonObject itemsJson = new JsonObject();
         items.forEach(itemsJson::addProperty);
         payload.add("items", itemsJson);
+        String block = ContainerDataManager.blockOf(containerId);
+        if (block != null) payload.addProperty("block", block);
         sendRaw(payload);
     }
 
@@ -276,6 +284,9 @@ public class BmlClientNetworking {
         });
         payload.add("containers", containersJson);
         payload.add("shulkers", com.betterlist.data.PortableShulkerManager.snapshot());
+        JsonObject blocksJson = new JsonObject();
+        ContainerDataManager.blockSnapshot().forEach(blocksJson::addProperty);
+        payload.add("containerBlocks", blocksJson);
 
         sendRaw(payload);
         LOGGER.info("[BML-Network] Sent full state to {}.", targetNick);
@@ -289,6 +300,8 @@ public class BmlClientNetworking {
         payload.addProperty("placement", placement);
         payload.addProperty("containerId", containerId);
         payload.addProperty("marked", marked);
+        String block = marked ? ContainerDataManager.blockOf(containerId) : null;
+        if (block != null) payload.addProperty("block", block);
         sendRaw(payload);
     }
 }

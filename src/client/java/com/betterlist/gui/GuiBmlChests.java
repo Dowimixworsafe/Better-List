@@ -26,6 +26,10 @@ public class GuiBmlChests extends GuiBase {
     private static final int LIST_TOP = 78;
     private static final int PANEL_W = 360;
     private static final int BTN_SIZE = 18;
+    private static final int ICON_SIZE = 16;
+    private static final int ICON_GAP = 4;
+    private int iconX() { return panelLeft() + 4; }
+    private int textX() { return iconX() + ICON_SIZE + ICON_GAP; }
     // Left edge of the 3-button action column (preview / highlight / remove).
     private int actionsX() { return panelLeft() + PANEL_W - 3 * (BTN_SIZE + 4); }
 
@@ -146,7 +150,7 @@ public class GuiBmlChests extends GuiBase {
         // (the centered drawTitle renders the title)
 
         // Column headers + a separator line spanning exactly the panel width.
-        ctx.drawString(this.font, "§7" + com.betterlist.util.BmlLang.tr("bml.chests.col_coords"), left + 4, HEADER_Y, 0xFFFFFFFF, false);
+        ctx.drawString(this.font, "§7" + com.betterlist.util.BmlLang.tr("bml.chests.col_coords"), textX(), HEADER_Y, 0xFFFFFFFF, false);
         ctx.drawString(this.font, "§7" + com.betterlist.util.BmlLang.tr("bml.chests.col_items"), colItems, HEADER_Y, 0xFFFFFFFF, false);
         ctx.drawString(this.font, "§7" + com.betterlist.util.BmlLang.tr("bml.chests.col_actions"), colActions, HEADER_Y, 0xFFFFFFFF, false);
         ctx.fill(left, HEADER_Y + 11, left + PANEL_W, HEADER_Y + 12, 0x40FFFFFF);
@@ -174,9 +178,10 @@ public class GuiBmlChests extends GuiBase {
                     display = "§b" + parts[1].trim() + " §8(" + parts[0].replace("minecraft:", "") + ")";
             }
             // Truncate coords so they never run into the Items column.
-            display = (lost ? "§c" : "") + trimToWidth(display, colItems - (left + 4) - 6);
-            ctx.drawString(this.font, display, left + 4, y + (lost ? 0 : 5), 0xFFFFFFFF, false);
-            if (lost) ctx.drawString(this.font, "§c" + trimToWidth(com.betterlist.data.PortableShulkerManager.lossReason(coord), colItems - (left + 4) - 6), left + 4, y + 10, 0xFFFFFFFF, false);
+            drawContext.item(ContainerDataManager.containerIcon(coord), iconX(), y + (BTN_SIZE - ICON_SIZE) / 2);
+            display = (lost ? "§c" : "") + trimToWidth(display, colItems - textX() - 6);
+            ctx.drawString(this.font, display, textX(), y + (lost ? 0 : 5), 0xFFFFFFFF, false);
+            if (lost) ctx.drawString(this.font, "§c" + trimToWidth(com.betterlist.data.PortableShulkerManager.lossReason(coord), colItems - textX() - 6), textX(), y + 10, 0xFFFFFFFF, false);
 
             int count = itemCount(coord);
             String countStr = count > 0 ? "§f" + count : "§8—";
