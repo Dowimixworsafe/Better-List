@@ -53,6 +53,9 @@ public class GuiBmlChests extends GuiBase {
             this.coordsList.addAll(containers);
             this.coordsList.sort(String::compareTo);
         }
+        List<String> lost = new ArrayList<>(com.betterlist.data.PortableShulkerManager.lostIds());
+        lost.sort(String::compareTo);
+        this.coordsList.addAll(lost);
         this.title = com.betterlist.util.BmlLang.tr("bml.chests.title", this.coordsList.size());
     }
 
@@ -66,6 +69,7 @@ public class GuiBmlChests extends GuiBase {
     @Override
     public void initGui() {
         super.initGui();
+        refreshList();
         int left = panelLeft();
 
         // Back arrow — top-left corner, consistent with other screens.
@@ -88,14 +92,15 @@ public class GuiBmlChests extends GuiBase {
         int startY = LIST_TOP;
         for (int i = scrollOffset; i < end; i++) {
             final String rawCoord = this.coordsList.get(i);
+            boolean lost = com.betterlist.data.PortableShulkerManager.isLost(rawCoord);
             // 🔍 preview
-            this.addButton(new ButtonGeneric(colActions, startY, BTN_SIZE, BTN_SIZE, "🔍"),
+            if (!lost) this.addButton(new ButtonGeneric(colActions, startY, BTN_SIZE, BTN_SIZE, "🔍"),
                     com.betterlist.util.BmlButtons.leftClick(
                             () -> GuiBase.openGui(new GuiChestPreview(rawCoord, this.placementName))));
 
             // 💡 highlight (toggle)
             boolean hl = ChestHighlightManager.isHighlighted(rawCoord);
-            this.addButton(new ButtonGeneric(colActions + (BTN_SIZE + 4), startY, BTN_SIZE, BTN_SIZE,
+            if (!lost) this.addButton(new ButtonGeneric(colActions + (BTN_SIZE + 4), startY, BTN_SIZE, BTN_SIZE,
                     hl ? "§a💡" : "§7💡"), com.betterlist.util.BmlButtons.leftClick(() -> {
                 ChestHighlightManager.toggle(rawCoord);
                 this.initGui();
@@ -116,7 +121,7 @@ public class GuiBmlChests extends GuiBase {
         this.addButton(new ButtonGeneric(left, this.height - 30, PANEL_W, 20,
                 "§c" + com.betterlist.util.BmlLang.tr("bml.chests.unmark_all")),
                 com.betterlist.util.BmlButtons.leftClick(() -> {
-            for (String rawCoord : new ArrayList<>(ContainerDataManager.getMarkedContainers())) {
+            for (String rawCoord : new ArrayList<>(this.coordsList)) {
                 ContainerDataManager.setContainerMarked(rawCoord, false);
             }
             ChestHighlightManager.clear();
@@ -156,19 +161,22 @@ public class GuiBmlChests extends GuiBase {
         int y = LIST_TOP;
         for (int idx = scrollOffset; idx < end; idx++) {
             String coord = this.coordsList.get(idx);
+            boolean lost = com.betterlist.data.PortableShulkerManager.isLost(coord);
             // Alternating row background for readability.
             if ((idx & 1) == 0)
                 ctx.fill(left, y - 2, left + PANEL_W, y + ROW_H - 4, 0x18FFFFFF);
 
-            String display = coord;
-            if (coord.contains(";")) {
-                String[] parts = coord.split(";");
+            String display = com.betterlist.data.PortableShulkerManager.isId(coord)
+                    ? com.betterlist.data.PortableShulkerManager.label(coord) : coord;
+            if (display.contains(";")) {
+                String[] parts = display.split(";");
                 if (parts.length >= 2)
                     display = "§b" + parts[1].trim() + " §8(" + parts[0].replace("minecraft:", "") + ")";
             }
             // Truncate coords so they never run into the Items column.
-            display = trimToWidth(display, colItems - (left + 4) - 6);
-            ctx.drawString(this.font, display, left + 4, y + 5, 0xFFFFFFFF, false);
+            display = (lost ? "§c" : "") + trimToWidth(display, colItems - (left + 4) - 6);
+            ctx.drawString(this.font, display, left + 4, y + (lost ? 0 : 5), 0xFFFFFFFF, false);
+            if (lost) ctx.drawString(this.font, "§c" + trimToWidth(com.betterlist.data.PortableShulkerManager.lossReason(coord), colItems - (left + 4) - 6), left + 4, y + 10, 0xFFFFFFFF, false);
 
             int count = itemCount(coord);
             String countStr = count > 0 ? "§f" + count : "§8—";

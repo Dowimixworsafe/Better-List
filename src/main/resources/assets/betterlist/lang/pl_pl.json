@@ -1,4 +1,7 @@
 {
+	"bml.shulker.carried": "Shulker: niesie %s",
+	"bml.shulker.dropped": "Shulker: leży na ziemi",
+	"bml.shulker.unknown": "Shulker: ostatnia zawartość",
 	"bml.gui.back": "← Wróć",
 	"bml.gui.search_placeholder": "Szukaj przedmiotu...",
 
@@ -145,5 +148,9 @@
 	"bml.party.project": "Projekt party (wybierz schematy)",
 	"bml.party.send_project": "Wyślij wybrane do party",
 	"bml.party.project_sent": "[BetterList] Wysłano projekt (%s schematów) do party.",
-	"bml.party.no_schematics": "Brak wczytanych schematów do wyboru."
+	"bml.party.no_schematics": "Brak wczytanych schematów do wyboru.",
+	"bml.shulker.lost.fire": "Zniknął: spłonął w ogniu/lawie",
+	"bml.shulker.lost.void": "Zniknął: wpadł w pustkę",
+	"bml.shulker.lost.despawn": "Zniknął: za długo leżał na ziemi",
+	"bml.shulker.lost.destroyed": "Zniknął: zniszczony (np. wybuch)"
 }

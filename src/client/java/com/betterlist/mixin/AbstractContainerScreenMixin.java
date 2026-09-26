@@ -95,6 +95,8 @@ public abstract class AbstractContainerScreenMixin extends net.minecraft.client.
         if (cid == null)
             return;
 
+        com.betterlist.data.PortableShulkerManager.identifyOpenShulker();
+
         // Keep the paper icon at the right and let the larger checkbox extend to
         // the left, matching the original title-strip proportions.
         int controlWidth =
@@ -115,8 +117,12 @@ public abstract class AbstractContainerScreenMixin extends net.minecraft.client.
                 controlY,
                 BML_TRACKING_CHECKBOX_SIZE,
                 BML_TRACKING_TOOLTIP,
-                () -> ContainerDataManager.isContainerMarked(cid),
-                selected -> ContainerDataManager.setContainerMarked(cid, selected));
+                () -> ContainerDataManager.isContainerMarked(getContainerId()),
+                selected -> {
+                    String currentId = getContainerId();
+                    if (!com.betterlist.data.PortableShulkerManager.toggleAt(currentId, selected))
+                        ContainerDataManager.setContainerMarked(currentId, selected);
+                });
         this.bml_TrackingCheckboxInstance.setTooltip(Tooltip.create(BML_TRACKING_TOOLTIP));
         this.addRenderableWidget(this.bml_TrackingCheckboxInstance);
     }

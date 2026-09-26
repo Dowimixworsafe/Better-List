@@ -64,6 +64,24 @@ java {
 	withSourcesJar()
 }
 
+sourceSets {
+	regressionTest {
+		compileClasspath += sourceSets.main.output + sourceSets.client.runtimeClasspath
+		runtimeClasspath += sourceSets.main.output + sourceSets.client.runtimeClasspath
+	}
+}
+
+tasks.register('portableShulkerTest', JavaExec) {
+	dependsOn tasks.named('regressionTestClasses')
+	classpath = sourceSets.regressionTest.runtimeClasspath
+	mainClass = 'com.betterlist.data.PortableShulkerRegressionTest'
+	workingDir = layout.buildDirectory.dir('regression-run').get().asFile
+	doFirst { workingDir.mkdirs() }
+	javaLauncher = javaToolchains.launcherFor { languageVersion = JavaLanguageVersion.of(25) }
+}
+
+tasks.named('check') { dependsOn tasks.named('portableShulkerTest') }
+
 jar {
 	inputs.property "archivesName", project.base.archivesName
 

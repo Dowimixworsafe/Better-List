@@ -27,7 +27,7 @@ public class BmlPackets {
      * until that member walks into range again. Same wire, different guarantees, so the
      * mismatch warning is worth firing even though nothing fails outright.
      */
-    public static final String PROTOCOL_VERSION = "3";
+    public static final String PROTOCOL_VERSION = "5";
 
     // ── Handshake ──────────────────────────────────────────────────────────────
     public static final String BML_HELLO     = "BML_HELLO";
@@ -46,6 +46,10 @@ public class BmlPackets {
     public static final String SYNC_CHECKED    = "SYNC_CHECKED";
     public static final String SYNC_CONTAINER  = "SYNC_CONTAINER";
     public static final String SYNC_CONTAINER_MARKED = "SYNC_CONTAINER_MARKED";
+    public static final String SHULKER_BIND = "SHULKER_BIND";
+    public static final String SHULKER_SUBSCRIBE = "SHULKER_SUBSCRIBE";
+    public static final String SHULKER_STATE = "SHULKER_STATE";
+    public static final String SYNC_SHULKER_TRACK = "SYNC_SHULKER_TRACK";
     public static final String SYNC_FULL_STATE = "SYNC_FULL_STATE";
     public static final String SYNC_PLACEMENT  = "SYNC_PLACEMENT";
     public static final String SYNC_PLACEMENT_REQUEST = "SYNC_PLACEMENT_REQUEST";

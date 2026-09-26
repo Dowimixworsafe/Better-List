@@ -35,6 +35,7 @@ public class BmlClientNetworking {
 
     /** True once the server replied to BML_HELLO. */
     public static volatile boolean serverSupported = false;
+    public static boolean portableShulkersSupported = false;
 
     // ─── Receiver registration ─────────────────────────────────────────────────
 
@@ -86,8 +87,12 @@ public class BmlClientNetworking {
         switch (type) {
             case BmlPackets.BML_HELLO_ACK -> {
                 serverSupported = true;
+                portableShulkersSupported = json.has("portableShulkers") && json.get("portableShulkers").getAsBoolean();
+                com.betterlist.data.PortableShulkerManager.subscribeAll();
                 LOGGER.info("[BML-Network] Server supports BML! Party features enabled.");
             }
+            case BmlPackets.SHULKER_STATE -> com.betterlist.data.PortableShulkerManager.accept(json);
+            case BmlPackets.SYNC_SHULKER_TRACK -> com.betterlist.data.PortableShulkerManager.receiveTracking(json);
             case BmlPackets.SYNC_CHECKED -> {
                 // "placement" carries the checklistKey directly (enabled-placement names).
                 String placement = json.get("placement").getAsString();
@@ -133,6 +138,7 @@ public class BmlClientNetworking {
     }
 
     private static void applyFullState(JsonObject json) {
+        if (json.has("shulkers")) com.betterlist.data.PortableShulkerManager.merge(json.getAsJsonObject("shulkers"));
         // checkedItems: { checklistKey -> { itemName -> bool } }  (key is opaque)
         if (json.has("checkedItems")) {
             json.getAsJsonObject("checkedItems").entrySet().forEach(keyEntry -> {
@@ -269,6 +275,7 @@ public class BmlClientNetworking {
             containersJson.add(containerId, itemsJson);
         });
         payload.add("containers", containersJson);
+        payload.add("shulkers", com.betterlist.data.PortableShulkerManager.snapshot());
 
         sendRaw(payload);
         LOGGER.info("[BML-Network] Sent full state to {}.", targetNick);

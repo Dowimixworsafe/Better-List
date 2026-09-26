@@ -122,6 +122,7 @@ public class ExampleModClient implements ClientModInitializer {
 			MaterialStateManager.clear();
 			// Reset party state + serverSupported flag
 			BmlClientNetworking.serverSupported = false;
+			BmlClientNetworking.portableShulkersSupported = false;
 			PartyManager.reset();
 			// Reset snapshot for placement autosync
 			placementSnapshot.clear();

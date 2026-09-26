@@ -367,6 +367,7 @@ public class InputHandler implements IKeybindProvider, IHotkeyCallback {
         if (entries == null) return;
         if (com.betterlist.config.ModConfig.COUNT_PLAYER_INVENTORY && player != null) {
             fi.dy.masa.litematica.materials.MaterialListUtils.updateAvailableCounts(entries, player);
+            com.betterlist.data.PortableShulkerManager.removeInventoryDuplicates(entries, player.getInventory());
         } else {
             for (MaterialListEntry entry : entries) entry.setCountAvailable(0);
         }

@@ -92,13 +92,16 @@ public class GuiChestPreview extends GuiBase {
         int x = (this.width - this.props.width) / 2;
         int y = Math.max(40, (this.height - this.props.height) / 2);
 
-        String coordLabel = this.containerId;
+        String coordLabel = com.betterlist.data.PortableShulkerManager.isId(this.containerId)
+                ? com.betterlist.data.PortableShulkerManager.label(this.containerId) : this.containerId;
         if (coordLabel.contains(";")) {
             String[] parts = coordLabel.split(";");
             if (parts.length >= 2)
                 coordLabel = parts[1] + " (" + parts[0].replace("minecraft:", "") + ")";
         }
         ctx.drawString(this.font, "§e" + coordLabel, x, y - 12, 0xFFFFFFFF, false);
+        if (com.betterlist.data.PortableShulkerManager.isLost(this.containerId))
+            ctx.drawString(this.font, "§c" + com.betterlist.data.PortableShulkerManager.lossReason(this.containerId), x, y - 24, 0xFFFFFFFF, false);
 
         InventoryOverlay.renderInventoryBackground(ctx, this.type, x, y,
                 this.props.slotsPerRow, this.container.getContainerSize());
