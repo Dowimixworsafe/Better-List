@@ -14,7 +14,7 @@ Track what you've placed, what's stored in your chests, and what each teammate i
   - 💡 **Highlight** tracked chests in the world — visible **through walls**.
   - Tracked chests are forgotten automatically once the chest is gone, so a broken chest stops padding your *Stored* count.
   - Each tracked container shows its real block icon (chest, barrel, colored shulker, …).
-  - **Shulker boxes follow their shulker** — carried, dropped or placed elsewhere, it stays tracked. A lost one (burned, void, despawned, blown up) stays listed in red with the reason. Needs the server side (Fabric server mod or the Integration plugin 1.3.0+).
+  - **Shulker boxes follow their shulker.** Carried, dropped or placed elsewhere, it stays tracked. A lost one (burned, void, despawned, blown up) stays listed in red with the reason. Needs the server side (Fabric server mod or the Integration plugin 1.3.0+).
 - **Find an item in your chests** — left-click any row to search for that item; every tracked chest holding it lights up in the world with its own pulsing outline, distinct from the manual 💡 highlight. The tooltip tells you how many chests hold it and how many you have.
 - **Targeted-items HUD** — right-click items to *target* them, then toggle a compact top-right HUD showing `have / need`. Items drop off the HUD automatically once you've gathered enough. Works **solo**.
 - **Party sync** — invite players, share schematic placements, and sync checklist + stored progress between everyone. See which teammates are focusing which items (colored borders + player heads on the list).
@@ -31,9 +31,9 @@ Track what you've placed, what's stored in your chests, and what each teammate i
 | `H` | Toggle chest highlighting |
 | `J` | Toggle targeted-items HUD |
 | `O` | Open party screen |
-| — | Open config (unbound by default) |
+| none | Open config (unbound by default) |
 
-The config is also reachable from the mod list of any MaLiLib config screen and from Mod Menu (optional). All keybinds are MaLiLib hotkeys — rebindable, with key combinations and conflict detection.
+The config is also reachable from the mod list of any MaLiLib config screen and from Mod Menu (optional). All keybinds are MaLiLib hotkeys: rebindable, with key combinations and conflict detection.
 
 ## Party sync — server setup
 
