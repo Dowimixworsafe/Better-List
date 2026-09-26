@@ -27,7 +27,7 @@ public class ModConfig implements IConfigHandler {
                fi.dy.masa.malilib.hotkeys.KeyAction.PRESS,
                false, false, false, false),
          "betterlist.hotkeys.reload_list");
-   public static final ConfigHotkey OPEN_CONFIG = new ConfigHotkey("Open Config GUI", "COMMA",
+   public static final ConfigHotkey OPEN_CONFIG = new ConfigHotkey("Open Config GUI", "",
          "betterlist.hotkeys.open_config");
    public static final ConfigHotkey OPEN_PARTY = new ConfigHotkey("Open Party GUI", "O",
          "betterlist.hotkeys.open_party");
@@ -61,7 +61,7 @@ public class ModConfig implements IConfigHandler {
                   ConfigHotkey hotkey = (ConfigHotkey) var5.next();
                   String name = hotkey.getName();
                   if (hotkeysObj.has(name)) {
-                     hotkey.setValueFromString(hotkeysObj.get(name).getAsString());
+                     hotkey.setValueFromJsonElement(hotkeysObj.get(name));
                   }
                }
             }
@@ -89,7 +89,7 @@ public class ModConfig implements IConfigHandler {
 
          while (var4.hasNext()) {
             ConfigHotkey hotkey = (ConfigHotkey) var4.next();
-            hotkeysObj.addProperty(hotkey.getName(), hotkey.getStringValue());
+            hotkeysObj.add(hotkey.getName(), hotkey.getAsJsonElement());
          }
 
          root.add("Hotkeys", hotkeysObj);

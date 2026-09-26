@@ -37,6 +37,7 @@ public class BmlServerNetworking {
         ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
             ServerPlayer player = handler.player;
             UUID playerUUID = player.getUUID();
+            PortableShulkerService.disconnect(playerUUID);
             UUID partyId = ServerPartyManager.getPartyIdForPlayer(playerUUID);
             if (partyId != null) {
                 if (ServerPartyManager.isLeader(partyId, playerUUID)) {
@@ -99,10 +100,13 @@ public class BmlServerNetworking {
         LOGGER.debug("[BML-Server] Received packet: {} from {}", type, sender.getName().getString());
 
         switch (type) {
+            case BmlPackets.SHULKER_BIND, BmlPackets.SHULKER_SUBSCRIBE -> PortableShulkerService.handle(sender, json);
+            case BmlPackets.SHULKER_STATE -> { }
             case BmlPackets.BML_HELLO -> {
                 JsonObject ack = new JsonObject();
                 ack.addProperty("type", BmlPackets.BML_HELLO_ACK);
                 ack.addProperty("version", "1");
+                ack.addProperty("portableShulkers", true);
                 sendToPlayer(sender, ack);
             }
             case BmlPackets.PARTY_INVITE -> {

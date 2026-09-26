@@ -277,7 +277,8 @@ public class InputHandler implements IKeybindProvider, IHotkeyCallback {
             MaterialListBase mlb = p.getMaterialList();
             if (mlb == null) continue;
             net.minecraft.core.BlockPos origin = p.getOrigin();
-            if (origin == null || !mc.level.hasChunkAt(origin)) continue;
+            // ClientLevel.hasChunkAt() also accepts unloaded chunks; consult the cache instead.
+            if (origin == null || !mc.level.getChunkSource().hasChunk(origin.getX() >> 4, origin.getZ() >> 4)) continue;
             QuietCountTask task = new QuietCountTask(p, mlb, ignoreState);
             scheduler.scheduleTask(task, 20);
             quietRecounts.add(task);
@@ -366,6 +367,7 @@ public class InputHandler implements IKeybindProvider, IHotkeyCallback {
         if (entries == null) return;
         if (com.betterlist.config.ModConfig.COUNT_PLAYER_INVENTORY && player != null) {
             fi.dy.masa.litematica.materials.MaterialListUtils.updateAvailableCounts(entries, player);
+            com.betterlist.data.PortableShulkerManager.removeInventoryDuplicates(entries, player.getInventory());
         } else {
             for (MaterialListEntry entry : entries) entry.setCountAvailable(0);
         }

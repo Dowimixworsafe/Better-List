@@ -1,4 +1,7 @@
 {
+	"bml.shulker.carried": "Shulker: carried by %s",
+	"bml.shulker.dropped": "Shulker: dropped item",
+	"bml.shulker.unknown": "Shulker: last known contents",
 	"bml.gui.back": "← Back",
 	"bml.gui.search_placeholder": "Search item...",
 
@@ -145,5 +148,9 @@
 	"bml.party.project": "Party project (select schematics)",
 	"bml.party.send_project": "Send selected to party",
 	"bml.party.project_sent": "[BetterList] Sent the project (%s schematic(s)) to the party.",
-	"bml.party.no_schematics": "No schematics loaded to choose from."
+	"bml.party.no_schematics": "No schematics loaded to choose from.",
+	"bml.shulker.lost.fire": "Gone: burned in fire/lava",
+	"bml.shulker.lost.void": "Gone: fell into the void",
+	"bml.shulker.lost.despawn": "Gone: lay on the ground too long",
+	"bml.shulker.lost.destroyed": "Gone: destroyed (e.g. explosion)"
 }

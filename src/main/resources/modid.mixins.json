@@ -3,6 +3,10 @@
 	"package": "com.betterlist.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"ShulkerBoxBlockMixin",
+		"PortableShulkerPlacementMixin",
+        "PortableShulkerLossMixin",
+        "PortableShulkerVoidMixin"
 	],
 	"client": [
 		"AbstractContainerScreenMixin",

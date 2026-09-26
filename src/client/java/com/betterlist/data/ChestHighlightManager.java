@@ -59,6 +59,7 @@ public final class ChestHighlightManager {
 
     /** Dimension encoded in the containerId (e.g. "minecraft:overworld"), or null. */
     public static String dimensionOf(String containerId) {
+        if (PortableShulkerManager.isId(containerId)) containerId = PortableShulkerManager.location(containerId);
         if (containerId == null) return null;
         int sep = containerId.indexOf(';');
         return sep > 0 ? containerId.substring(0, sep) : null;
@@ -66,6 +67,7 @@ public final class ChestHighlightManager {
 
     /** Parses a BlockPos from the part after ';'. Tolerant of "x, y, z" and "[x, y, z]". */
     public static BlockPos posOf(String containerId) {
+        if (PortableShulkerManager.isId(containerId)) containerId = PortableShulkerManager.location(containerId);
         if (containerId == null) return null;
         int sep = containerId.indexOf(';');
         if (sep < 0) return null;

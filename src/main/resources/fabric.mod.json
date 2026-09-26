@@ -21,6 +21,9 @@
 		],
 		"client": [
 			"com.betterlist.ExampleModClient"
+		],
+		"modmenu": [
+			"com.betterlist.compat.ModMenuIntegration"
 		]
 	},
 	"mixins": [
@@ -37,5 +40,8 @@
 		"fabric-api": "*",
 		"malilib": "*",
 		"litematica": "*"
+	},
+	"suggests": {
+		"modmenu": "*"
 	}
 }

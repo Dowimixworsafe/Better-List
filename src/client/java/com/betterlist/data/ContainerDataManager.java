@@ -95,7 +95,9 @@ public class ContainerDataManager {
             }
         }
 
-        return level.dimension().identifier().toString() + ";" + keyPos.toShortString();
+        String location = level.dimension().identifier().toString() + ";" + keyPos.toShortString();
+        return state.getBlock() instanceof net.minecraft.world.level.block.ShulkerBoxBlock
+                ? PortableShulkerManager.at(location) : location;
     }
 
     // Last clicked block — set by MultiPlayerGameModeMixin, used to derive the
@@ -104,6 +106,7 @@ public class ContainerDataManager {
 
     // Map<containerId, Map<itemName, count>>
     private static Map<String, Map<String, Integer>> containers = new HashMap<>();
+    private static Map<String, String> containerBlocks = new HashMap<>();
 
     // Write debounce: mutations set dirty=true; the actual disk write happens in flush(),
     // called periodically from ClientTickEvents and on disconnect. This keeps a burst of
@@ -116,6 +119,7 @@ public class ContainerDataManager {
 
     /** Writes to disk only if there were changes since the last flush. */
     public static void flush() {
+        PortableShulkerManager.flush();
         if (dirty) {
             dirty = false;
             save();
@@ -138,7 +142,13 @@ public class ContainerDataManager {
         return new File(dataDir(), BmlServerId.current() + "_containers.json");
     }
 
+    private static File getBlocksFile() {
+        return new File(dataDir(), BmlServerId.current() + "_container_blocks.json");
+    }
+
     public static void load() {
+        PortableShulkerManager.load();
+        loadBlocks();
         containers.clear();
         File saveFile = getSaveFile();
 
@@ -221,20 +231,96 @@ public class ContainerDataManager {
         } catch (Exception e) {
             LOGGER.error("[BML] Failed to save containers: {}", e.getMessage());
         }
+        try (FileWriter writer = new FileWriter(getBlocksFile())) {
+            GSON.toJson(containerBlocks, writer);
+        } catch (Exception e) {
+            LOGGER.error("[BML] Failed to save container blocks: {}", e.getMessage());
+        }
+    }
+
+    private static void loadBlocks() {
+        containerBlocks.clear();
+        File file = getBlocksFile();
+        if (!file.exists()) return;
+        try (FileReader reader = new FileReader(file)) {
+            Type type = new TypeToken<Map<String, String>>() {}.getType();
+            Map<String, String> loaded = GSON.fromJson(reader, type);
+            if (loaded != null) {
+                loaded.forEach((id, block) -> {
+                    if ((isValidContainerId(id) || PortableShulkerManager.isId(id)) && block != null) {
+                        containerBlocks.put(id, block);
+                    }
+                });
+            }
+        } catch (Exception e) {
+            LOGGER.error("[BML] Failed to read {}: {}", file.getName(), e.getMessage());
+            backup(file);
+        }
+    }
+
+    public static void rememberBlock(String containerId) {
+        String location = PortableShulkerManager.isId(containerId)
+                ? PortableShulkerManager.location(containerId) : containerId;
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getInstance();
+        if (location == null || mc == null || mc.level == null) return;
+        if (!mc.level.dimension().identifier().toString().equals(ChestHighlightManager.dimensionOf(location))) return;
+        BlockPos pos = ChestHighlightManager.posOf(location);
+        if (pos == null || !mc.level.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)
+                || !(mc.level.getBlockEntity(pos) instanceof Container)) return;
+        net.minecraft.world.item.Item item = mc.level.getBlockState(pos).getBlock().asItem();
+        if (item == net.minecraft.world.item.Items.AIR) return;
+        String key = net.minecraft.core.registries.BuiltInRegistries.ITEM.getKey(item).toString();
+        if (!key.equals(containerBlocks.put(containerId, key))) markDirty();
+    }
+
+    public static String blockOf(String containerId) {
+        return containerBlocks.get(containerId);
+    }
+
+    public static Map<String, String> blockSnapshot() {
+        return new HashMap<>(containerBlocks);
+    }
+
+    public static void setBlockSilent(String containerId, String key) {
+        if (key == null || !(isContainerMarked(containerId) || PortableShulkerManager.isLost(containerId))) return;
+        net.minecraft.resources.Identifier itemId = net.minecraft.resources.Identifier.tryParse(key);
+        if (itemId == null || net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(itemId).isEmpty()) return;
+        if (!key.equals(containerBlocks.put(containerId, key))) markDirty();
+    }
+
+    public static net.minecraft.world.item.ItemStack containerIcon(String containerId) {
+        rememberBlock(containerId);
+        String key = containerBlocks.get(containerId);
+        net.minecraft.resources.Identifier itemId = key == null ? null : net.minecraft.resources.Identifier.tryParse(key);
+        net.minecraft.world.item.Item item = itemId == null ? null
+                : net.minecraft.core.registries.BuiltInRegistries.ITEM.getOptional(itemId).orElse(null);
+        if (item == null || item == net.minecraft.world.item.Items.AIR) {
+            item = PortableShulkerManager.isId(containerId)
+                    ? net.minecraft.world.item.Items.SHULKER_BOX : net.minecraft.world.item.Items.CHEST;
+        }
+        return new net.minecraft.world.item.ItemStack(item);
     }
 
     public static void clear() {
         containers.clear();
+        containerBlocks.clear();
+        PortableShulkerManager.clear();
     }
 
     public static boolean isContainerMarked(String containerId) {
-        return containerId != null && containers.containsKey(containerId);
+        return containerId != null && (containers.containsKey(containerId) || PortableShulkerManager.isTracked(containerId));
     }
 
     public static void setContainerMarked(String containerId, boolean marked) {
         if (containerId == null) return;
+        if (!marked && containerBlocks.remove(containerId) != null) markDirty();
+        if (PortableShulkerManager.isId(containerId)) {
+            PortableShulkerManager.setTracked(containerId, marked, true);
+            return;
+        }
         if (marked) {
             containers.putIfAbsent(containerId, new HashMap<>());
+            rememberBlock(containerId);
         } else {
             containers.remove(containerId);
             dropHighlight(containerId);
@@ -255,8 +341,10 @@ public class ContainerDataManager {
         if (!isValidContainerId(containerId)) return;
         if (marked) {
             containers.putIfAbsent(containerId, new HashMap<>());
+            rememberBlock(containerId);
         } else {
             containers.remove(containerId);
+            containerBlocks.remove(containerId);
             dropHighlight(containerId);
         }
         markDirty();
@@ -284,6 +372,7 @@ public class ContainerDataManager {
      */
     public static void onBlockDestroyed(Level level, BlockPos pos) {
         String containerId = containerIdAt(level, pos);
+        if (PortableShulkerManager.isId(containerId)) return;
         if (containerId == null || !isContainerMarked(containerId)) return;
         LOGGER.info("[BML] Tracked chest {} was broken — dropping it from tracking.", containerId);
         setContainerMarked(containerId, false);
@@ -314,10 +403,13 @@ public class ContainerDataManager {
         String currentDim = level.dimension().identifier().toString();
 
         for (String containerId : getMarkedContainers()) {
+            if (PortableShulkerManager.isId(containerId)) continue;
             if (!currentDim.equals(ChestHighlightManager.dimensionOf(containerId))) continue;
 
             BlockPos pos = ChestHighlightManager.posOf(containerId);
-            if (pos == null || !level.hasChunkAt(pos)) continue;
+            // ClientLevel.hasChunk() always returns true, including for unloaded chunks.
+            // Query the chunk cache directly before treating a missing block entity as removal.
+            if (pos == null || !level.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) continue;
 
             // Any Container block entity counts — a modded chest reusing the vanilla screen
             // is trackable, and a false drop costs real data while a false keep costs nothing.
@@ -362,9 +454,11 @@ public class ContainerDataManager {
      * genuine scan of this chest reaches here.
      */
     public static void updateContainerItems(String containerId, Map<String, Integer> items) {
+        if (PortableShulkerManager.isId(containerId)) return;
         if (containerId == null) return;
         if (isContainerMarked(containerId)) {
             containers.put(containerId, new HashMap<>(items));
+            rememberBlock(containerId);
             markDirty();
             if (PartyManager.isInParty()) {
                 BmlClientNetworking.sendContainerSync(GLOBAL_PLACEMENT, containerId, items);
@@ -413,22 +507,28 @@ public class ContainerDataManager {
                 totals.merge(entry.getKey(), entry.getValue(), Integer::sum);
             }
         }
+        PortableShulkerManager.addTotals(totals);
         return totals;
     }
 
     public static void clearAll() {
-        if (!containers.isEmpty()) {
+        PortableShulkerManager.unmarkAll();
+        if (!containers.isEmpty() || !containerBlocks.isEmpty()) {
             containers.clear();
+            containerBlocks.clear();
             markDirty();
         }
     }
 
     public static java.util.Set<String> getMarkedContainers() {
-        return new java.util.HashSet<>(containers.keySet());
+        java.util.Set<String> ids = new java.util.HashSet<>(containers.keySet());
+        ids.addAll(PortableShulkerManager.ids());
+        return ids;
     }
 
     /** Contents of a single marked chest (or an empty map). */
     public static Map<String, Integer> getContainerContents(String containerId) {
+        if (PortableShulkerManager.isId(containerId)) return PortableShulkerManager.contents(containerId);
         if (containerId == null) return new HashMap<>();
         Map<String, Integer> c = containers.get(containerId);
         return c == null ? new HashMap<>() : new HashMap<>(c);

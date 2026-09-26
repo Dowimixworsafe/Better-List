@@ -94,6 +94,8 @@ public class ExampleModClient implements ClientModInitializer {
 		ModConfig config = new ModConfig();
 		ConfigManager.getInstance().registerConfigHandler("betterlist", config);
 		config.load();
+		fi.dy.masa.malilib.registry.Registry.CONFIG_SCREEN.registerConfigScreenFactory(
+				new fi.dy.masa.malilib.util.data.ModInfo("betterlist", "Better List", com.betterlist.gui.GuiConfigs::new));
 
 		// Keybinds
 		InputHandler.getInstance().registerKeyCallbacks();
@@ -122,6 +124,7 @@ public class ExampleModClient implements ClientModInitializer {
 			MaterialStateManager.clear();
 			// Reset party state + serverSupported flag
 			BmlClientNetworking.serverSupported = false;
+			BmlClientNetworking.portableShulkersSupported = false;
 			PartyManager.reset();
 			// Reset snapshot for placement autosync
 			placementSnapshot.clear();

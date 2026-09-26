@@ -18,5 +18,6 @@ public class ExampleMod implements ModInitializer {
 
 		// Server-side relay that forwards packets between party members.
 		com.betterlist.server.BmlServerNetworking.register();
+		com.betterlist.server.PortableShulkerService.register();
 	}
 }
