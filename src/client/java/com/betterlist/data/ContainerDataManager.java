@@ -317,7 +317,9 @@ public class ContainerDataManager {
             if (!currentDim.equals(ChestHighlightManager.dimensionOf(containerId))) continue;
 
             BlockPos pos = ChestHighlightManager.posOf(containerId);
-            if (pos == null || !level.hasChunkAt(pos)) continue;
+            // ClientLevel.hasChunk() always returns true, including for unloaded chunks.
+            // Query the chunk cache directly before treating a missing block entity as removal.
+            if (pos == null || !level.getChunkSource().hasChunk(pos.getX() >> 4, pos.getZ() >> 4)) continue;
 
             // Any Container block entity counts — a modded chest reusing the vanilla screen
             // is trackable, and a false drop costs real data while a false keep costs nothing.
