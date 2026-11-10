@@ -2,25 +2,25 @@
 
 A **Litematica add-on** for Fabric that turns the material list into a full build-tracking tool.
 
-Track what you've placed, what's stored in your chests, and what each teammate is working on — all from one upgraded material list. Works in singleplayer and on servers, solo or in a party.
+Track what you've placed, what's stored in your chests, and what each teammate is working on, all from one upgraded material list. Works in singleplayer and on servers, solo or in a party.
 
 > Requires [Litematica](https://modrinth.com/mod/litematica) and [MaLiLib](https://modrinth.com/mod/malilib) (plus Fabric API). Client-side.
 
 ## Features
 
-- **Material checklist** — tick off items per schematic as you gather them; state is saved **per server**.
-- **Tracked chests → live "stored" counts** — mark any chest as storage and its contents are counted into a *Stored* column, so you instantly see what you still need vs. what's already in bulk storage.
+- **Material checklist.** Tick off items per schematic as you gather them; state is saved **per server**.
+- **Tracked chests → live "stored" counts.** Mark any chest as storage and its contents are counted into a *Stored* column, so you instantly see what you still need vs. what's already in bulk storage.
   - 🔍 **Preview** a tracked chest's remembered contents without walking to it.
-  - 💡 **Highlight** tracked chests in the world — visible **through walls**.
+  - 💡 **Highlight** tracked chests in the world, visible **through walls**.
   - Tracked chests are forgotten automatically once the chest is gone, so a broken chest stops padding your *Stored* count.
   - Each tracked container shows its real block icon (chest, barrel, colored shulker, …).
   - **Shulker boxes follow their shulker.** Carried, dropped or placed elsewhere, it stays tracked. A lost one (burned, void, despawned, blown up) stays listed in red with the reason. Needs the server side (Fabric server mod or the Integration plugin 1.3.0+).
-- **Find an item in your chests** — left-click any row to search for that item; every tracked chest holding it lights up in the world with its own pulsing outline, distinct from the manual 💡 highlight. The tooltip tells you how many chests hold it and how many you have.
-- **Targeted-items HUD** — right-click items to *target* them, then toggle a compact top-right HUD showing `have / need`. Items drop off the HUD automatically once you've gathered enough. Works **solo**.
-- **Party sync** — invite players, share schematic placements, and sync checklist + stored progress between everyone. See which teammates are focusing which items (colored borders + player heads on the list).
-- **Filtering & sorting** — search, hide fully-placed / fully-stored / checked items, sort by any column, filter the list to a specific player's targets.
+- **Find an item in your chests.** Left-click any row to search for that item; every tracked chest holding it lights up in the world with its own pulsing outline, distinct from the manual 💡 highlight. The tooltip tells you how many chests hold it and how many you have.
+- **Targeted-items HUD.** Right-click items to *target* them, then toggle a compact top-right HUD showing `have / need`. Items drop off the HUD automatically once you've gathered enough. Works **solo**.
+- **Party sync.** Invite players, share schematic placements, and sync checklist + stored progress between everyone. See which teammates are focusing which items (colored borders + player heads on the list).
+- **Filtering & sorting.** Search, hide fully-placed / fully-stored / checked items, sort by any column, filter the list to a specific player's targets.
 - **Shulker box counts** (optional). Large amounts are split into full shulkers first, shown with a shulker icon: `12000 = 6 [shulker] + 25 x 64 + 32`. Turn on *Show shulker boxes in counts* in the settings.
-- **Localization** — English (default) and Polish; switch in *Options → Language*.
+- **Localization.** English (default) and Polish; switch in *Options → Language*.
 
 ## Default keybinds
 
@@ -36,14 +36,14 @@ Track what you've placed, what's stored in your chests, and what each teammate i
 
 The config is also reachable from the mod list of any MaLiLib config screen and from Mod Menu (optional). All keybinds are MaLiLib hotkeys: rebindable, with key combinations and conflict detection.
 
-## Party sync — server setup
+## Party sync: server setup
 
 All single-player features work without any server setup. **Party sync** additionally needs the server to relay BML packets. Two options:
 
 - **Fabric server:** drop this same mod into the server's `mods/` folder (with Fabric API). No extra download.
 - **Bukkit-family server** (Paper, Purpur, Spigot, …): install the companion **[BetterList Integration plugin](https://github.com/Dowimixworsafe/Better-List-Integration)**.
 
-Either way, party members just need the **same mod version** on their clients — if someone is running a different one you'll get a one-time in-game warning, since sync guarantees can differ between versions.
+Either way, party members just need the **same mod version** on their clients. If someone is running a different one you'll get a one-time in-game warning, since sync guarantees can differ between versions.
 
 Release notes live in [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
@@ -75,4 +75,4 @@ Requires the Java 25 toolchain.
 
 ## License
 
-All Rights Reserved. Litematica and MaLiLib are separate projects (LGPL-3.0) and are required as runtime dependencies — they are not bundled with this mod.
+All Rights Reserved. Litematica and MaLiLib are separate projects (LGPL-3.0) and are required as runtime dependencies; they are not bundled with this mod.

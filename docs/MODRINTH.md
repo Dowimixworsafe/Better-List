@@ -2,7 +2,7 @@
 
 **A Litematica add-on that turns the material list into a full build-tracking tool.**
 
-Track what you've placed, what's stored in your chests, and what each teammate is working on — all from one upgraded material list. Works in singleplayer and on servers, solo or in a party.
+Track what you've placed, what's stored in your chests, and what each teammate is working on, all from one upgraded material list. Works in singleplayer and on servers, solo or in a party.
 
 > ⚠️ **Requires [Litematica](https://modrinth.com/mod/litematica) and [MaLiLib](https://modrinth.com/mod/malilib)** (plus Fabric API). Client-side.
 
@@ -14,18 +14,18 @@ Track what you've placed, what's stored in your chests, and what each teammate i
 Tick off items per schematic as you gather them. State is saved **per server**, so your progress is right where you left it next time you log in.
 
 ### 📦 Tracked chests → live "stored" counts
-Mark any chest as storage and its contents are counted into a **Stored** column on the list — so you instantly see how much you still need to craft vs. what's already in your bulk storage.
+Mark any chest as storage and its contents are counted into a **Stored** column on the list, so you instantly see how much you still need to craft vs. what's already in your bulk storage.
 - 🔍 **Preview** a chest's contents without walking to it
-- 💡 **Highlight** tracked chests in the world — visible **through walls**
+- 💡 **Highlight** tracked chests in the world, visible **through walls**
 - Chests you break are forgotten automatically, so a chest that no longer exists stops padding your **Stored** count
 - Each tracked container shows its real block icon: chest, barrel, a shulker in its color, …
 - 🟪 **Shulker boxes follow their shulker.** Carry it, drop it or place it elsewhere and it stays tracked. If it burns, falls into the void, despawns or gets blown up, it stays on the list in red with the reason
 
 ### 🔦 Find an item in your chests
-Left-click any row and every tracked chest holding that item lights up in the world, with its own pulsing outline — clearly different from the manual 💡 highlight, so you always know which is which. The tooltip tells you how many chests hold it and how many you have in total.
+Left-click any row and every tracked chest holding that item lights up in the world, with its own pulsing outline, clearly different from the manual 💡 highlight, so you always know which is which. The tooltip tells you how many chests hold it and how many you have in total.
 
 ### 🎯 Targeted-items HUD
-Right-click items on the list to **target** them, then toggle a compact top-right HUD showing `have / need`. Items drop off the HUD automatically once you've gathered enough. Works **solo** — no party required.
+Right-click items on the list to **target** them, then toggle a compact top-right HUD showing `have / need`. Items drop off the HUD automatically once you've gathered enough. Works **solo**, no party required.
 
 ### 👥 Party sync
 Build together: invite players, share schematic placements, and sync checklist + stored progress between everyone. See which teammates are focusing which items (colored borders + player heads on the list).
@@ -40,7 +40,7 @@ Build together: invite players, share schematic placements, and sync checklist +
 Optional: turn on *Show shulker boxes in counts* in the settings and big amounts are split into full shulkers first, shown with a shulker icon: `12000 = 6 [shulker] + 25 x 64 + 32`. Handy when you're hauling whole shulkers of sand to the smelter.
 
 ### 🌍 Localization
-Fully translated — **English** (default) and **Polish**. Switch in *Options → Language*.
+Fully translated: **English** (default) and **Polish**. Switch in *Options → Language*.
 
 ---
 
@@ -75,6 +75,6 @@ Party sync works through a server-side relay (a Paper/Bukkit plugin or the built
 
 ## 💬 Notes
 
-Litematica and MaLiLib are separate projects by *masa* and are required as dependencies — they are **not** bundled with this mod. Big thanks to them for the foundation this add-on builds on.
+Litematica and MaLiLib are separate projects by *masa* and are required as dependencies; they are **not** bundled with this mod. Big thanks to them for the foundation this add-on builds on.
 
 Found a bug or have a suggestion? Open an issue on [GitHub](https://github.com/Dowimixworsafe/Better-List/issues).
