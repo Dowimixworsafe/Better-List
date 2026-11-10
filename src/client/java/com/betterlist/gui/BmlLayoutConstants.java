@@ -14,5 +14,6 @@ public final class BmlLayoutConstants {
     public static final int PLACED_WIDTH    = 45;
     public static final int TOTAL_WIDTH           = 55;
     public static final int SINGLE_TOTAL_WIDTH    = 145; // fits "99999 = 1562 x 64 + 31"
+    public static final int SINGLE_TOTAL_WIDTH_SB = 165; // fits "99999 = 57 [icon] + 26 x 64 + 31" (shulker breakdown on)
     public static final int SINGLE_MODE_MAX_WIDTH = 680;
 }

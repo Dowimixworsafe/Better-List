@@ -200,7 +200,9 @@ record LayoutMetrics(
                 ? COMPACT_PLACED_WIDTH
                 : BmlLayoutConstants.PLACED_WIDTH;
         int totalWidth = singleColumn
-                ? BmlLayoutConstants.SINGLE_TOTAL_WIDTH
+                ? (com.betterlist.config.ModConfig.SHOW_SHULKER_BREAKDOWN
+                        ? BmlLayoutConstants.SINGLE_TOTAL_WIDTH_SB
+                        : BmlLayoutConstants.SINGLE_TOTAL_WIDTH)
                 : (this.compactColumns ? COMPACT_TOTAL_WIDTH : BmlLayoutConstants.TOTAL_WIDTH);
 
         int checkboxEnd = x + width - checkboxMargin;

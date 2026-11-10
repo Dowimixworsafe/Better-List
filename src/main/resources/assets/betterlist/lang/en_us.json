@@ -28,6 +28,8 @@
 	"bml.config.hover_tooltip.comment": "Show the info popup when hovering an item on the material list.",
 	"bml.config.count_inventory": "Count player inventory",
 	"bml.config.count_inventory.comment": "When on, items in your inventory count toward 'stored'. When off, only tracked chests count.",
+	"bml.config.shulker_breakdown": "Show shulker boxes in counts",
+	"bml.config.shulker_breakdown.comment": "Splits large amounts into full shulker boxes first, e.g. 12000 = 6 shulkers + 25 x 64 + 32 (shown with a shulker icon). Applies to the \"Need\" column (single layout) and the item tooltip.",
 
 	"bml.tip.party": "Open the party menu (invite/sync with friends)",
 	"bml.tip.layout": "Switch layout: 2 columns horizontal / vertical / single",

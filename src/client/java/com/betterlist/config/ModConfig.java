@@ -46,6 +46,8 @@ public class ModConfig implements IConfigHandler {
    // General options (stored under "Options" in betterlist.json).
    public static boolean SHOW_ITEM_HOVER_TOOLTIP = true;
    public static boolean COUNT_PLAYER_INVENTORY = true;
+   // Issue #8: break large counts into shulker boxes ("6 [icon] + 23 x 64 + 32"). Off by default.
+   public static boolean SHOW_SHULKER_BREAKDOWN = false;
 
    public void load() {
       File configFile = new File(FabricLoader.getInstance().getConfigDir().toFile(), "betterlist.json");
@@ -74,6 +76,9 @@ public class ModConfig implements IConfigHandler {
                if (optionsObj.has("countPlayerInventory")) {
                   COUNT_PLAYER_INVENTORY = optionsObj.get("countPlayerInventory").getAsBoolean();
                }
+               if (optionsObj.has("showShulkerBreakdown")) {
+                  SHOW_SHULKER_BREAKDOWN = optionsObj.get("showShulkerBreakdown").getAsBoolean();
+               }
             }
          }
       }
@@ -97,6 +102,7 @@ public class ModConfig implements IConfigHandler {
          JsonObject optionsObj = new JsonObject();
          optionsObj.addProperty("showItemHoverTooltip", SHOW_ITEM_HOVER_TOOLTIP);
          optionsObj.addProperty("countPlayerInventory", COUNT_PLAYER_INVENTORY);
+         optionsObj.addProperty("showShulkerBreakdown", SHOW_SHULKER_BREAKDOWN);
          root.add("Options", optionsObj);
 
          JsonUtils.writeJsonToFile(root, new File(dir, "betterlist.json").toPath());

@@ -448,10 +448,10 @@ public class GuiBetterMaterialList
         int placed        = Math.max(0, total - missingInWorld);
         int actualMissing = Math.max(0, missingInWorld - available);
 
-        String needLine  = com.betterlist.util.BmlLang.tr("bml.tt.need")   + ": " + WidgetBetterMaterialListEntry.stackBreakdown(total);
-        String placeLine = com.betterlist.util.BmlLang.tr("bml.tt.placed") + ": " + WidgetBetterMaterialListEntry.stackBreakdown(placed);
-        String storeLine = com.betterlist.util.BmlLang.tr("bml.tt.stored") + ": " + WidgetBetterMaterialListEntry.stackBreakdown(available);
-        String missLine  = com.betterlist.util.BmlLang.tr("bml.tt.miss")   + ": " + WidgetBetterMaterialListEntry.stackBreakdown(actualMissing);
+        String needLine  = com.betterlist.util.BmlLang.tr("bml.tt.need")   + ": " + WidgetBetterMaterialListEntry.stackBreakdown(total, stack);
+        String placeLine = com.betterlist.util.BmlLang.tr("bml.tt.placed") + ": " + WidgetBetterMaterialListEntry.stackBreakdown(placed, stack);
+        String storeLine = com.betterlist.util.BmlLang.tr("bml.tt.stored") + ": " + WidgetBetterMaterialListEntry.stackBreakdown(available, stack);
+        String missLine  = com.betterlist.util.BmlLang.tr("bml.tt.miss")   + ": " + WidgetBetterMaterialListEntry.stackBreakdown(actualMissing, stack);
 
         // Focusing-players section (always shown in tooltip regardless of focus mode)
         String itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM
@@ -476,9 +476,9 @@ public class GuiBetterMaterialList
         int faceRowH = 16;
         String focusHeader = com.betterlist.util.BmlLang.tr("bml.tt.focused_by");
         int textW = Math.max(font.width(fullName),
-                    Math.max(font.width(needLine),
-                    Math.max(font.width(placeLine),
-                    Math.max(font.width(storeLine), font.width(missLine)))));
+                    Math.max(ShulkerCountText.width(font, needLine),
+                    Math.max(ShulkerCountText.width(font, placeLine),
+                    Math.max(ShulkerCountText.width(font, storeLine), ShulkerCountText.width(font, missLine)))));
         textW = Math.max(textW, font.width(hintLine));
         if (searchLine != null) textW = Math.max(textW, font.width(searchLine));
         if (!focusers.isEmpty()) {
@@ -505,11 +505,11 @@ public class GuiBetterMaterialList
         guiContext.drawString(font, fullName, tx + pad + iconSize + 4, ty + pad + (iconSize - 8) / 2, 0xFFFFFFFF, false);
 
         int ly = ty + pad + iconSize + 4;
-        guiContext.drawString(font, needLine,  tx + pad, ly,              0xFFAAAAAA, false);
-        guiContext.drawString(font, placeLine, tx + pad, ly + lineH,      0xFFFFFFFF, false);
-        guiContext.drawString(font, storeLine, tx + pad, ly + lineH * 2,  0xFFFFFFFF, false);
+        ShulkerCountText.draw(guiContext, font, needLine,  tx + pad, ly,             0xFFAAAAAA);
+        ShulkerCountText.draw(guiContext, font, placeLine, tx + pad, ly + lineH,     0xFFFFFFFF);
+        ShulkerCountText.draw(guiContext, font, storeLine, tx + pad, ly + lineH * 2, 0xFFFFFFFF);
         int missColor = actualMissing > 0 ? 0xFFFF5555 : 0xFF55FF55;
-        guiContext.drawString(font, missLine,  tx + pad, ly + lineH * 3,  missColor,  false);
+        ShulkerCountText.draw(guiContext, font, missLine,  tx + pad, ly + lineH * 3, missColor);
 
         int extraY = ly + lineH * 4;
         if (searchLine != null) {
