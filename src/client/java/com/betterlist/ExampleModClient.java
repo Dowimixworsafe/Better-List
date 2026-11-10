@@ -41,7 +41,8 @@ public class ExampleModClient implements ClientModInitializer {
 	private static final Logger LOGGER = LoggerFactory.getLogger("BetterList");
 
 	// Schematic placement autosync state
-	private static final Map<String, BlockPos> placementSnapshot = new HashMap<>();
+	// placement name -> PlacementSyncHelper.stateKey (origin + rotation + mirror)
+	private static final Map<String, String> placementSnapshot = new HashMap<>();
 	private static int placementCheckTick = 0;
 	private static final int PLACEMENT_CHECK_INTERVAL = 100; // ~5s at 20 TPS
 
@@ -51,8 +52,8 @@ public class ExampleModClient implements ClientModInitializer {
 	 * incoming position as its own move and sent it back up to 5s later; if the sender
 	 * had moved the placement again meanwhile, that stale echo snapped it back.
 	 */
-	public static void notePlacementFromParty(String name, BlockPos origin) {
-		placementSnapshot.put(name, origin);
+	public static void notePlacementFromParty(String name, String stateKey) {
+		placementSnapshot.put(name, stateKey);
 	}
 
 	// Handshake: we count ticks after joining the world instead of spawning a thread.
@@ -260,13 +261,13 @@ public class ExampleModClient implements ClientModInitializer {
 			if (++placementCheckTick < PLACEMENT_CHECK_INTERVAL) return;
 			placementCheckTick = 0;
 
-			Map<String, BlockPos> current = new HashMap<>();
+			Map<String, String> current = new HashMap<>();
 			try {
 				var all = fi.dy.masa.litematica.data.DataManager
 						.getSchematicPlacementManager().getAllSchematicsPlacements();
 				if (all != null) {
 					for (var p : all) {
-						if (p.isEnabled()) current.put(p.getName(), p.getOrigin());
+						if (p.isEnabled()) current.put(p.getName(), PlacementSyncHelper.stateKey(p));
 					}
 				}
 			} catch (Exception e) {
