@@ -19,6 +19,7 @@ Track what you've placed, what's stored in your chests, and what each teammate i
 - **Targeted-items HUD** — right-click items to *target* them, then toggle a compact top-right HUD showing `have / need`. Items drop off the HUD automatically once you've gathered enough. Works **solo**.
 - **Party sync** — invite players, share schematic placements, and sync checklist + stored progress between everyone. See which teammates are focusing which items (colored borders + player heads on the list).
 - **Filtering & sorting** — search, hide fully-placed / fully-stored / checked items, sort by any column, filter the list to a specific player's targets.
+- **Shulker box counts** (optional). Large amounts are split into full shulkers first, shown with a shulker icon: `12000 = 6 [shulker] + 25 x 64 + 32`. Turn on *Show shulker boxes in counts* in the settings.
 - **Localization** — English (default) and Polish; switch in *Options → Language*.
 
 ## Default keybinds
@@ -48,11 +49,12 @@ Release notes live in [docs/CHANGELOG.md](docs/CHANGELOG.md).
 
 ## Minecraft versions
 
-`main` targets the latest supported Minecraft release. Older ones live on maintenance branches.
+`main` targets the latest supported Minecraft release and also builds the previous one from the same code. Older ones live on maintenance branches.
 
 | Minecraft | Branch |
 |-----------|--------|
-| 26.2 | `main` |
+| 26.3 | `main` |
+| 26.2 | `main` (build with the overrides below) |
 | 26.1.2 | [`mc/26.1.2`](https://github.com/Dowimixworsafe/Better-List/tree/mc/26.1.2) |
 
 ## Building
@@ -62,6 +64,13 @@ Requires the Java 25 toolchain.
 ```bash
 ./gradlew build      # → build/libs/betterlist-<version>.jar
 ./gradlew runClient  # launch a dev client
+```
+
+`gradle.properties` targets the newest Minecraft version. To build for 26.2, override the versions:
+
+```bash
+./gradlew build -Pminecraft_version=26.2 -Pmod_version=1.5.0+26.2 -Ploader_version=0.19.3 \
+  -Pfabric_api_version=0.154.2+26.2 -Pmalilib_version=0.29.3 -Plitematica_version=0.28.3 -Pmodmenu_version=20.0.3
 ```
 
 ## License

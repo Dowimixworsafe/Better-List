@@ -4,6 +4,29 @@ Release notes for Modrinth. Paste the relevant section into the version descript
 
 ---
 
+## 1.5.0+26.3 / 1.5.0+26.2 (Minecraft 26.3 and 26.2)
+
+Same release for both game versions: upload `1.5.0+26.3` and `1.5.0+26.2` as two Modrinth versions with these notes.
+
+No sync changes, so it works in a party with players still on 1.4.0. The BetterList Integration plugin needs no update.
+
+### ✨ New
+
+- **Minecraft 26.3 support.** Built against MaLiLib 0.30.2 and Litematica 0.29.1. The 26.2 build gets the same release.
+- **Shulker boxes in counts** (requested by @hazzle140 in #8). Turn on *Show shulker boxes in counts* in the settings and large amounts are split into full shulkers first, shown with a shulker icon: `12000 = 6 [shulker] + 25 x 64 + 32`. Works in the Need column (single layout) and in the item tooltip. Off by default.
+
+### 🐛 Fixed
+
+- **Stack counts use the item's real stack size.** Ender pearls, signs and other 16-stack items were counted in 64s in the tooltip.
+
+### 🔧 Under the hood
+
+- Mouse handling reworked for Minecraft 26.3, which switched to a new input system: buttons, checkboxes, right-click targeting and column sorting now react to click events.
+- Both jars are built from the same code.
+- Sync protocol unchanged (version 5).
+
+---
+
 ## 1.4.0+26.2 (Minecraft 26.2)
 
 ### ⚠️ Update together

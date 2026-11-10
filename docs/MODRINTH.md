@@ -36,6 +36,9 @@ Build together: invite players, share schematic placements, and sync checklist +
 - Sort by any column (Need, Done, Have, Miss, …)
 - Filter the list to a specific player's targets
 
+### 🟪 Shulker box counts
+Optional: turn on *Show shulker boxes in counts* in the settings and big amounts are split into full shulkers first, shown with a shulker icon: `12000 = 6 [shulker] + 25 x 64 + 32`. Handy when you're hauling whole shulkers of sand to the smelter.
+
 ### 🌍 Localization
 Fully translated — **English** (default) and **Polish**. Switch in *Options → Language*.
 
@@ -64,7 +67,7 @@ The config is also in the mod list of any MaLiLib config screen (Litematica, Min
 - **MaLiLib**
 - **Litematica**
 - **Mod Menu** (optional)
-- Minecraft **26.2** or **26.1.2** — pick the matching file under *Versions*
+- Minecraft **26.3**, **26.2** or **26.1.2**: pick the matching file under *Versions*
 
 Party sync works through a server-side relay (a Paper/Bukkit plugin or the built-in Fabric server path); without it, all single-player features still work normally.
 
