@@ -29,6 +29,7 @@ import net.minecraft.world.item.ItemStack;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import java.util.HashMap;
@@ -43,6 +44,16 @@ public class ExampleModClient implements ClientModInitializer {
 	private static final Map<String, BlockPos> placementSnapshot = new HashMap<>();
 	private static int placementCheckTick = 0;
 	private static final int PLACEMENT_CHECK_INTERVAL = 100; // ~5s at 20 TPS
+
+	/**
+	 * Records a placement that was just created from a teammate's SYNC_PLACEMENT, so the
+	 * autosync below sees it as already in sync. Without this the receiver treated the
+	 * incoming position as its own move and sent it back up to 5s later; if the sender
+	 * had moved the placement again meanwhile, that stale echo snapped it back.
+	 */
+	public static void notePlacementFromParty(String name, BlockPos origin) {
+		placementSnapshot.put(name, origin);
+	}
 
 	// Handshake: we count ticks after joining the world instead of spawning a thread.
 	// -1 = inactive; >=0 = counts up to HELLO_DELAY_TICKS, then sends BML_HELLO.
@@ -262,11 +273,17 @@ public class ExampleModClient implements ClientModInitializer {
 				return;
 			}
 
-			if (!current.equals(placementSnapshot)) {
-				placementSnapshot.clear();
-				placementSnapshot.putAll(current);
-				LOGGER.info("[BetterList] Placement change detected — auto-syncing to party.");
-				PlacementSyncHelper.sendAllPlacements();
+			// Send only placements that actually moved or appeared locally. Re-sending every
+			// placement would overwrite teammates' newer positions with ours.
+			List<String> changed = new ArrayList<>();
+			for (var e : current.entrySet()) {
+				if (!e.getValue().equals(placementSnapshot.get(e.getKey()))) changed.add(e.getKey());
+			}
+			placementSnapshot.clear();
+			placementSnapshot.putAll(current);
+			if (!changed.isEmpty()) {
+				LOGGER.info("[BetterList] Placement change detected ({}), auto-syncing to party.", changed);
+				PlacementSyncHelper.sendChangedPlacements(changed);
 			}
 		});
 

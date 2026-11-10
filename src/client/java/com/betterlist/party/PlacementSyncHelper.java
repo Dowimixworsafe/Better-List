@@ -89,6 +89,24 @@ public class PlacementSyncHelper {
         LOGGER.info("[BML-PlacementSync] Sent {} selected placement(s) as the party project.", sent);
     }
 
+    /** Autosync: sends only the named placements (the ones that moved locally). */
+    public static void sendChangedPlacements(java.util.Collection<String> names) {
+        if (!PartyManager.isInParty() || names == null || names.isEmpty()) return;
+        List<SchematicPlacement> all = DataManager.getSchematicPlacementManager().getAllSchematicsPlacements();
+        if (all == null) return;
+        int sent = 0;
+        for (SchematicPlacement placement : all) {
+            if (!placement.isEnabled() || !names.contains(placement.getName())) continue;
+            sendSinglePlacement(placement, null);
+            sent++;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        if (sent > 0 && mc.player != null) {
+            mc.player.sendSystemMessage(
+                Component.literal("§a" + com.betterlist.util.BmlLang.tr("bml.sync.sent_placements", sent)));
+        }
+    }
+
     private static void reportMissingSchematic(String schematicName) {
         if (!PartyManager.isInParty()) return;
         Minecraft mc = Minecraft.getInstance();
@@ -218,6 +236,8 @@ public class PlacementSyncHelper {
                     SchematicPlacement placement = SchematicPlacement.createFor(schematic, origin, placementName, true, true);
                     
                     fi.dy.masa.litematica.data.DataManager.getSchematicPlacementManager().addSchematicPlacement(placement, true);
+                    // Mark as in sync so our autosync doesn't echo it back to the sender.
+                    com.betterlist.ExampleModClient.notePlacementFromParty(placementName, origin);
                     
                     mc.player.sendSystemMessage(
                         Component.literal("§a" + com.betterlist.util.BmlLang.tr("bml.sync.auto_loaded", placementName)));
