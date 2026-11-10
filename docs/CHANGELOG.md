@@ -4,6 +4,19 @@ Release notes for Modrinth. Paste the relevant section into the version descript
 
 ---
 
+## 1.5.1+26.3 / 1.5.1+26.2 (Minecraft 26.3 and 26.2)
+
+Hotfix for schematic sync in a party. Upload `1.5.1+26.3` and `1.5.1+26.2` as two Modrinth versions with these notes.
+
+Everyone in the party should update: the fix is on the receiving side, so one player on an older version still sends the old positions back. The BetterList Integration plugin needs no update.
+
+### 🐛 Fixed
+
+- **Moved schematics no longer jump back.** When a teammate moved a shared schematic, your game sent the position it had just received back to them a few seconds later. If they had moved it again in the meantime, it snapped back to the older spot, often the starting one.
+- **Rotation and mirroring are synced.** A rotated or mirrored schematic now shows up the same way for everyone, and rotating it without moving it is sent to the party too.
+
+---
+
 ## 1.5.0+26.3 / 1.5.0+26.2 (Minecraft 26.3 and 26.2)
 
 Same release for both game versions: upload `1.5.0+26.3` and `1.5.0+26.2` as two Modrinth versions with these notes.
