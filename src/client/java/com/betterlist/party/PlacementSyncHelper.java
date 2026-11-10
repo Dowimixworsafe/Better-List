@@ -38,6 +38,29 @@ public class PlacementSyncHelper {
     private static final Logger LOGGER = LoggerFactory.getLogger("BML-PlacementSync");
 
     /**
+     * Everything the party syncs about a placement. Autosync compares this, so rotating or
+     * mirroring is detected as a change too, not only moving.
+     */
+    public static String stateKey(SchematicPlacement p) {
+        net.minecraft.core.BlockPos o = p.getOrigin();
+        return o.getX() + "," + o.getY() + "," + o.getZ() + "|" + p.getRotation().name() + "|" + p.getMirror().name();
+    }
+
+    /** Litematica wants a message sink for setRotation/setMirror; route it to the log. */
+    private static final fi.dy.masa.malilib.gui.interfaces.IMessageConsumer LOG_MESSAGES =
+            new fi.dy.masa.malilib.gui.interfaces.IMessageConsumer() {
+                @Override
+                public void addMessage(fi.dy.masa.malilib.gui.Message.MessageType type, String key, Object... args) {
+                    LOGGER.info("[BML-PlacementSync] Litematica: {} {}", type, key);
+                }
+
+                @Override
+                public void addMessage(fi.dy.masa.malilib.gui.Message.MessageType type, int lifeTime, String key, Object... args) {
+                    addMessage(type, key, args);
+                }
+            };
+
+    /**
      * Sends data about ALL active schematics to the party.
      * Called from the Party GUI after clicking "Sync Schematics".
      */
@@ -87,6 +110,24 @@ public class PlacementSyncHelper {
                 Component.literal("§a" + com.betterlist.util.BmlLang.tr("bml.party.project_sent", sent)));
         }
         LOGGER.info("[BML-PlacementSync] Sent {} selected placement(s) as the party project.", sent);
+    }
+
+    /** Autosync: sends only the named placements (the ones that moved locally). */
+    public static void sendChangedPlacements(java.util.Collection<String> names) {
+        if (!PartyManager.isInParty() || names == null || names.isEmpty()) return;
+        List<SchematicPlacement> all = DataManager.getSchematicPlacementManager().getAllSchematicsPlacements();
+        if (all == null) return;
+        int sent = 0;
+        for (SchematicPlacement placement : all) {
+            if (!placement.isEnabled() || !names.contains(placement.getName())) continue;
+            sendSinglePlacement(placement, null);
+            sent++;
+        }
+        Minecraft mc = Minecraft.getInstance();
+        if (sent > 0 && mc.player != null) {
+            mc.player.sendSystemMessage(
+                Component.literal("§a" + com.betterlist.util.BmlLang.tr("bml.sync.sent_placements", sent)));
+        }
     }
 
     private static void reportMissingSchematic(String schematicName) {
@@ -216,8 +257,16 @@ public class PlacementSyncHelper {
                 if (schematic != null) {
                     net.minecraft.core.BlockPos origin = new net.minecraft.core.BlockPos(ox, oy, oz);
                     SchematicPlacement placement = SchematicPlacement.createFor(schematic, origin, placementName, true, true);
-                    
+                    // Rotation and mirror were always sent but never applied, so a rotated
+                    // placement showed up unrotated for teammates.
+                    placement.setRotation(parseEnum(net.minecraft.world.level.block.Rotation.class, rotation,
+                            net.minecraft.world.level.block.Rotation.NONE), LOG_MESSAGES);
+                    placement.setMirror(parseEnum(net.minecraft.world.level.block.Mirror.class, mirror,
+                            net.minecraft.world.level.block.Mirror.NONE), LOG_MESSAGES);
+
                     fi.dy.masa.litematica.data.DataManager.getSchematicPlacementManager().addSchematicPlacement(placement, true);
+                    // Mark as in sync so our autosync doesn't echo it back to the sender.
+                    com.betterlist.ExampleModClient.notePlacementFromParty(placementName, stateKey(placement));
                     
                     mc.player.sendSystemMessage(
                         Component.literal("§a" + com.betterlist.util.BmlLang.tr("bml.sync.auto_loaded", placementName)));
@@ -233,6 +282,15 @@ public class PlacementSyncHelper {
     }
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    private static <T extends Enum<T>> T parseEnum(Class<T> type, String name, T fallback) {
+        try {
+            return Enum.valueOf(type, name);
+        } catch (IllegalArgumentException | NullPointerException e) {
+            LOGGER.warn("[BML-PlacementSync] Unknown {} '{}', using {}", type.getSimpleName(), name, fallback);
+            return fallback;
+        }
+    }
 
     /** Returns the schematic file name (basename with extension only). */
     private static String getSchematicFileName(SchematicPlacement placement) {

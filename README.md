@@ -69,7 +69,7 @@ Requires the Java 25 toolchain.
 `gradle.properties` targets the newest Minecraft version. To build for 26.2, override the versions:
 
 ```bash
-./gradlew build -Pminecraft_version=26.2 -Pmod_version=1.5.0+26.2 -Ploader_version=0.19.3 \
+./gradlew build -Pminecraft_version=26.2 -Pmod_version=1.5.1+26.2 -Ploader_version=0.19.3 \
   -Pfabric_api_version=0.154.2+26.2 -Pmalilib_version=0.29.3 -Plitematica_version=0.28.3 -Pmodmenu_version=20.0.3
 ```
 
