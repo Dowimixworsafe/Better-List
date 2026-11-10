@@ -1,5 +1,6 @@
 package com.betterlist.util;
 
+import com.mojang.blaze3d.platform.InputConstants;
 import fi.dy.masa.malilib.gui.button.IButtonActionListener;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
@@ -17,10 +18,14 @@ public final class BmlButtons {
 
     private BmlButtons() {}
 
-    /** Returns a listener that runs {@code action} only on a left-click (mouseButton 0). */
+    /**
+     * Returns a listener that runs {@code action} only on a left-click. Compare against
+     * {@code InputConstants.MOUSE_BUTTON_LEFT}, never a literal: 26.3 moved from GLFW (left = 0)
+     * to SDL (left = 1), and a hardcoded 0 silently disabled every button.
+     */
     public static IButtonActionListener leftClick(Runnable action) {
         return (button, mouseButton) -> {
-            if (mouseButton == 0) {
+            if (mouseButton == InputConstants.MOUSE_BUTTON_LEFT) {
                 action.run();
             }
         };

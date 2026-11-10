@@ -45,18 +45,22 @@ dependencies {
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
 
-	implementation "maven.modrinth:malilib:0.29.3"
-	implementation "maven.modrinth:litematica:0.28.3"
+	implementation "maven.modrinth:malilib:${project.malilib_version}"
+	implementation "maven.modrinth:litematica:${project.litematica_version}"
 
-	compileOnly "maven.modrinth:modmenu:20.0.3"
-	localRuntime "maven.modrinth:modmenu:20.0.3"
+	compileOnly "maven.modrinth:modmenu:${project.modmenu_version}"
+	localRuntime "maven.modrinth:modmenu:${project.modmenu_version}"
 }
 
 processResources {
 	inputs.property "version", project.version
+	inputs.property "minecraft_version", project.minecraft_version
 
+	// The game-version range comes from gradle.properties, so the same sources build for
+	// several MC versions (override with -Pminecraft_version=...).
 	filesMatching("fabric.mod.json") {
-		expand "version": inputs.properties.version
+		expand "version": inputs.properties.version,
+				"minecraft_version": inputs.properties.minecraft_version
 	}
 }
 

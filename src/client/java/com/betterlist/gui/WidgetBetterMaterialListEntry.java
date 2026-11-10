@@ -86,13 +86,36 @@ public class WidgetBetterMaterialListEntry extends WidgetListEntryBase<MaterialL
         }));
     }
 
-    static String stackBreakdown(int n) {
-        if (n <= 0) return String.valueOf(n);
-        int stacks = n / 64;
-        int rem = n % 64;
-        if (stacks == 0) return String.valueOf(n);
-        if (rem == 0) return n + " = " + stacks + " x 64";
-        return n + " = " + stacks + " x 64 + " + rem;
+    /** Slots in a shulker box. */
+    private static final int SHULKER_SLOTS = 27;
+
+    /**
+     * "n = S x 64 + r", using the item's real stack size (16 for pearls/signs, 1 for tools).
+     * With {@code ModConfig.SHOW_SHULKER_BREAKDOWN} on, full shulker boxes are split off first:
+     * "12000 = 6 [shulker icon] + 25 x 64 + 32" (issue #8). Parts that are zero are omitted.
+     * The icon is a {@link ShulkerCountText#ICON} marker: measure/draw via ShulkerCountText.
+     */
+    static String stackBreakdown(int n, ItemStack stack) {
+        int max = Math.max(1, stack.getMaxStackSize());
+        if (n <= 0 || n < max) return String.valueOf(n);
+
+        StringBuilder sb = new StringBuilder().append(n).append(" =");
+        int rest = n;
+        String sep = " ";
+        if (com.betterlist.config.ModConfig.SHOW_SHULKER_BREAKDOWN) {
+            int perShulker = SHULKER_SLOTS * max;
+            int shulkers = rest / perShulker;
+            if (shulkers > 0) {
+                sb.append(sep).append(shulkers).append(' ').append(ShulkerCountText.ICON);
+                rest %= perShulker;
+                sep = " + ";
+            }
+        }
+        int stacks = rest / max;
+        int rem = rest % max;
+        if (stacks > 0) { sb.append(sep).append(stacks).append(" x ").append(max); sep = " + "; }
+        if (rem > 0)    { sb.append(sep).append(rem); }
+        return sb.toString();
     }
 
     @Override
@@ -223,8 +246,8 @@ public class WidgetBetterMaterialListEntry extends WidgetListEntryBase<MaterialL
         }
         guiContext.drawString(font, displayName, columns.nameStart(), textY, 0xFFFFFFFF, false);
 
-        String totalStr = isSingle ? stackBreakdown(total) : String.valueOf(total);
-        guiContext.drawString(font, totalStr, columns.totalStart(), textY, 0xFFAAAAAA, false);
+        String totalStr = isSingle ? stackBreakdown(total, stack) : String.valueOf(total);
+        ShulkerCountText.draw(guiContext, font, totalStr, columns.totalStart(), textY, 0xFFAAAAAA);
 
         int colIconY = y + (height - 16) / 2;
 

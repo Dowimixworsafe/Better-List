@@ -28,6 +28,8 @@
 	"bml.config.hover_tooltip.comment": "Pokazuj okienko z informacjami po najechaniu na item na liście materiałów.",
 	"bml.config.count_inventory": "Wliczaj ekwipunek gracza",
 	"bml.config.count_inventory.comment": "Gdy włączone, itemy z Twojego ekwipunku liczą się do „zebrane”. Gdy wyłączone, liczą się tylko śledzone skrzynie.",
+	"bml.config.shulker_breakdown": "Pokazuj shulkery w ilościach",
+	"bml.config.shulker_breakdown.comment": "Dzieli duże ilości najpierw na pełne shulkery, np. 12000 = 6 shulkerów + 25 x 64 + 32 (z ikoną shulkera). Dotyczy kolumny „Trzeba” (układ pojedynczy) i podpowiedzi przy itemie.",
 
 	"bml.tip.party": "Otwórz menu party (zaproszenia/synchronizacja ze znajomymi)",
 	"bml.tip.layout": "Zmień układ: 2 kolumny poziomo / pionowo / jedna",

@@ -16,6 +16,7 @@ public class GuiConfigs extends GuiConfigsBase {
     // Built lazily so the label follows the in-game language; value saved back on close.
     private fi.dy.masa.malilib.config.options.ConfigBoolean cfgHoverTooltip;
     private fi.dy.masa.malilib.config.options.ConfigBoolean cfgCountInventory;
+    private fi.dy.masa.malilib.config.options.ConfigBoolean cfgShulkerBreakdown;
 
     public GuiConfigs() {
         super(10, 50, "Better List", null, "betterlist");
@@ -75,6 +76,14 @@ public class GuiConfigs extends GuiConfigsBase {
         }
         configs.add(new ConfigOptionWrapper(this.cfgCountInventory));
 
+        if (this.cfgShulkerBreakdown == null) {
+            this.cfgShulkerBreakdown = new fi.dy.masa.malilib.config.options.ConfigBoolean(
+                    com.betterlist.util.BmlLang.tr("bml.config.shulker_breakdown"),
+                    ModConfig.SHOW_SHULKER_BREAKDOWN,
+                    com.betterlist.util.BmlLang.tr("bml.config.shulker_breakdown.comment"));
+        }
+        configs.add(new ConfigOptionWrapper(this.cfgShulkerBreakdown));
+
         // Localize the hotkey labels/comments shown in the config GUI (getName() stays the
         // English storage key, so saved bindings are unaffected).
         localize(ModConfig.OPEN_GUI,         "open_gui");
@@ -107,6 +116,9 @@ public class GuiConfigs extends GuiConfigsBase {
         }
         if (this.cfgCountInventory != null) {
             ModConfig.COUNT_PLAYER_INVENTORY = this.cfgCountInventory.getBooleanValue();
+        }
+        if (this.cfgShulkerBreakdown != null) {
+            ModConfig.SHOW_SHULKER_BREAKDOWN = this.cfgShulkerBreakdown.getBooleanValue();
         }
         // On close, immediately save the new config to disk.
         ModConfig config = new ModConfig();

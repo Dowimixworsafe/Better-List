@@ -41,7 +41,6 @@ public class GuiBetterMaterialList
     private static boolean globalAutoRefresh = true;
     private double lastMouseX = 0;
     private double lastMouseY = 0;
-    private boolean wasLeftMouseDown = false;
     private ButtonGeneric btnPlacedCheck;
     private ButtonGeneric btnStoredCheck;
     private ButtonGeneric btnAutoRefresh;
@@ -56,7 +55,6 @@ public class GuiBetterMaterialList
     private ButtonGeneric btnClearTargets;
     private fi.dy.masa.litematica.materials.MaterialListEntry hoveredEntry;
     private int hoveredMouseX, hoveredMouseY;
-    private boolean wasRightMouseDown = false;
     private ButtonGeneric btnFocusMaster;
     private ButtonGeneric btnPlayers;
     private boolean showPlayerDropdown = false;
@@ -450,10 +448,10 @@ public class GuiBetterMaterialList
         int placed        = Math.max(0, total - missingInWorld);
         int actualMissing = Math.max(0, missingInWorld - available);
 
-        String needLine  = com.betterlist.util.BmlLang.tr("bml.tt.need")   + ": " + WidgetBetterMaterialListEntry.stackBreakdown(total);
-        String placeLine = com.betterlist.util.BmlLang.tr("bml.tt.placed") + ": " + WidgetBetterMaterialListEntry.stackBreakdown(placed);
-        String storeLine = com.betterlist.util.BmlLang.tr("bml.tt.stored") + ": " + WidgetBetterMaterialListEntry.stackBreakdown(available);
-        String missLine  = com.betterlist.util.BmlLang.tr("bml.tt.miss")   + ": " + WidgetBetterMaterialListEntry.stackBreakdown(actualMissing);
+        String needLine  = com.betterlist.util.BmlLang.tr("bml.tt.need")   + ": " + WidgetBetterMaterialListEntry.stackBreakdown(total, stack);
+        String placeLine = com.betterlist.util.BmlLang.tr("bml.tt.placed") + ": " + WidgetBetterMaterialListEntry.stackBreakdown(placed, stack);
+        String storeLine = com.betterlist.util.BmlLang.tr("bml.tt.stored") + ": " + WidgetBetterMaterialListEntry.stackBreakdown(available, stack);
+        String missLine  = com.betterlist.util.BmlLang.tr("bml.tt.miss")   + ": " + WidgetBetterMaterialListEntry.stackBreakdown(actualMissing, stack);
 
         // Focusing-players section (always shown in tooltip regardless of focus mode)
         String itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM
@@ -478,9 +476,9 @@ public class GuiBetterMaterialList
         int faceRowH = 16;
         String focusHeader = com.betterlist.util.BmlLang.tr("bml.tt.focused_by");
         int textW = Math.max(font.width(fullName),
-                    Math.max(font.width(needLine),
-                    Math.max(font.width(placeLine),
-                    Math.max(font.width(storeLine), font.width(missLine)))));
+                    Math.max(ShulkerCountText.width(font, needLine),
+                    Math.max(ShulkerCountText.width(font, placeLine),
+                    Math.max(ShulkerCountText.width(font, storeLine), ShulkerCountText.width(font, missLine)))));
         textW = Math.max(textW, font.width(hintLine));
         if (searchLine != null) textW = Math.max(textW, font.width(searchLine));
         if (!focusers.isEmpty()) {
@@ -507,11 +505,11 @@ public class GuiBetterMaterialList
         guiContext.drawString(font, fullName, tx + pad + iconSize + 4, ty + pad + (iconSize - 8) / 2, 0xFFFFFFFF, false);
 
         int ly = ty + pad + iconSize + 4;
-        guiContext.drawString(font, needLine,  tx + pad, ly,              0xFFAAAAAA, false);
-        guiContext.drawString(font, placeLine, tx + pad, ly + lineH,      0xFFFFFFFF, false);
-        guiContext.drawString(font, storeLine, tx + pad, ly + lineH * 2,  0xFFFFFFFF, false);
+        ShulkerCountText.draw(guiContext, font, needLine,  tx + pad, ly,             0xFFAAAAAA);
+        ShulkerCountText.draw(guiContext, font, placeLine, tx + pad, ly + lineH,     0xFFFFFFFF);
+        ShulkerCountText.draw(guiContext, font, storeLine, tx + pad, ly + lineH * 2, 0xFFFFFFFF);
         int missColor = actualMissing > 0 ? 0xFFFF5555 : 0xFF55FF55;
-        guiContext.drawString(font, missLine,  tx + pad, ly + lineH * 3,  missColor,  false);
+        ShulkerCountText.draw(guiContext, font, missLine,  tx + pad, ly + lineH * 3, missColor);
 
         int extraY = ly + lineH * 4;
         if (searchLine != null) {
@@ -771,7 +769,39 @@ public class GuiBetterMaterialList
     public boolean mouseClicked(MouseButtonEvent event, boolean wasFocused) {
         double mouseX = event.x();
         double mouseY = event.y();
-        if (showPlayerDropdown && btnPlayers != null && event.button() == 0) {
+        boolean isLeft = event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_LEFT;
+
+        // Mouse input is handled here, from click events, never by polling in tick():
+        // since 26.3 MouseHandler.isLeft/RightPressed() only update while NO screen is open,
+        // so inside this GUI they are stale and polling fired on the wrong clicks.
+
+        // Right-click on any item toggles focus/target. Checked before super so the row's
+        // checkbox/buttons can't swallow it. Works solo too (the target is local); party
+        // sync is only sent when actually in a party.
+        if (event.button() == com.mojang.blaze3d.platform.InputConstants.MOUSE_BUTTON_RIGHT
+                && this.hoveredEntry != null) {
+            String itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM
+                    .getKey(this.hoveredEntry.getStack().getItem()).toString();
+            com.betterlist.party.FocusManager.toggleMyTarget(itemId);
+            if (com.betterlist.party.PartyManager.isInParty()) {
+                com.betterlist.network.BmlClientNetworking.sendTargetUpdate();
+            }
+            // Refresh the HUD immediately after a target change.
+            com.betterlist.data.HudOverlayManager.recompute();
+            return true;
+        }
+
+        if (isLeft && this.searchField != null) {
+            boolean inside = mouseX >= searchField.getX()
+                    && mouseX < searchField.getX() + searchField.getWidth()
+                    && mouseY >= searchField.getY()
+                    && mouseY < searchField.getY() + searchField.getHeight();
+            if (inside && !searchField.isFocused())       searchField.setFocused(true);
+            else if (!inside && searchField.isFocused())  searchField.setFocused(false);
+        }
+
+        if (isLeft && handleHeaderClick(mouseX, mouseY)) return true;
+        if (showPlayerDropdown && btnPlayers != null && isLeft) {
             java.util.List<String> members = getFocusMembers();
             int dpx = btnPlayers.getX();
             int dpw = 150;
@@ -796,10 +826,10 @@ public class GuiBetterMaterialList
         boolean consumed = super.mouseClicked(event, wasFocused);
 
         // Left-click a row to search tracked chests for that item — the mirror of right-click
-        // targeting. Handled here rather than by polling GLFW like the right-click path,
-        // because only here can we tell that a widget already took the click: the ✔ checkbox
-        // sits inside the row, and polling would fire the search on every checkbox tick too.
-        if (!consumed && event.button() == 0 && this.hoveredEntry != null) {
+        // targeting. The ✔ checkbox sits inside the row and must not also start a search.
+        // Checked by position, not just by `consumed`: malilib 0.30+ reports a click on a
+        // list-entry button as NOT consumed, so `consumed` alone let every ✔ tick search too.
+        if (!consumed && isLeft && this.hoveredEntry != null && !isOverCheckboxColumn(mouseX)) {
             String itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM
                     .getKey(this.hoveredEntry.getStack().getItem()).toString();
             com.betterlist.data.ChestSearchManager.toggle(itemId);
@@ -823,38 +853,6 @@ public class GuiBetterMaterialList
     @Override
     public void tick() {
         super.tick();
-
-        long window = Minecraft.getInstance().getWindow().handle();
-        boolean isMouseDown = org.lwjgl.glfw.GLFW.glfwGetMouseButton(window,
-                org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_1) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
-
-        if (isMouseDown && !this.wasLeftMouseDown) handleHeaderClick(this.lastMouseX, this.lastMouseY);
-        this.wasLeftMouseDown = isMouseDown;
-
-        // Right-click on any item to toggle focus/target. Works solo too (the target is
-        // local); party sync is only sent when actually in a party.
-        boolean isRightDown = org.lwjgl.glfw.GLFW.glfwGetMouseButton(window,
-                org.lwjgl.glfw.GLFW.GLFW_MOUSE_BUTTON_2) == org.lwjgl.glfw.GLFW.GLFW_PRESS;
-        if (isRightDown && !this.wasRightMouseDown && this.hoveredEntry != null) {
-            String itemId = net.minecraft.core.registries.BuiltInRegistries.ITEM
-                    .getKey(this.hoveredEntry.getStack().getItem()).toString();
-            com.betterlist.party.FocusManager.toggleMyTarget(itemId);
-            if (com.betterlist.party.PartyManager.isInParty()) {
-                com.betterlist.network.BmlClientNetworking.sendTargetUpdate();
-            }
-            // Refresh the HUD immediately after a target change.
-            com.betterlist.data.HudOverlayManager.recompute();
-        }
-        this.wasRightMouseDown = isRightDown;
-
-        if (isMouseDown && this.searchField != null) {
-            boolean inside = lastMouseX >= searchField.getX()
-                    && lastMouseX < searchField.getX() + searchField.getWidth()
-                    && lastMouseY >= searchField.getY()
-                    && lastMouseY < searchField.getY() + searchField.getHeight();
-            if (inside && !searchField.isFocused())       searchField.setFocused(true);
-            else if (!inside && searchField.isFocused())  searchField.setFocused(false);
-        }
 
         if (this.searchField != null && this.searchField.isFocused()) return;
 
@@ -906,11 +904,11 @@ public class GuiBetterMaterialList
 
     // ── Header sort clicks ────────────────────────────────────────────────────
 
-    private void handleHeaderClick(double mouseX, double mouseY) {
+    private boolean handleHeaderClick(double mouseX, double mouseY) {
         LayoutMetrics metrics = getLayoutMetrics();
         int headerY = metrics.headerY();
 
-        if (mouseY < headerY - 4 || mouseY > headerY + 12) return;
+        if (mouseY < headerY - 4 || mouseY > headerY + 12) return false;
 
         boolean isSingle = metrics.isSingleColumn();
         int loopCount = isSingle ? 1 : 2;
@@ -918,13 +916,26 @@ public class GuiBetterMaterialList
             LayoutMetrics.Section section = metrics.entrySection(i);
             LayoutMetrics.Columns columns = metrics.columns(section.x(), section.width());
 
-            if      (mouseX >= columns.nameStart() && mouseX < columns.totalStart())     { setSortMode(SortMode.BLOCK);    return; }
-            else if (mouseX >= columns.totalStart() && mouseX < columns.placedStart())   { setSortMode(SortMode.REQUIRED); return; }
-            else if (mouseX >= columns.placedStart() && mouseX < columns.availableStart()){ setSortMode(SortMode.PLACED);   return; }
-            else if (mouseX >= columns.availableStart() && mouseX < columns.missingStart()){ setSortMode(SortMode.STORED);   return; }
-            else if (mouseX >= columns.missingStart() && mouseX < columns.checkboxStart()){ setSortMode(SortMode.MISSING);  return; }
-            else if (mouseX >= columns.checkboxStart() && mouseX <= columns.checkboxEnd()){ setSortMode(SortMode.CHECKED); return; }
+            if      (mouseX >= columns.nameStart() && mouseX < columns.totalStart())     { setSortMode(SortMode.BLOCK);    return true; }
+            else if (mouseX >= columns.totalStart() && mouseX < columns.placedStart())   { setSortMode(SortMode.REQUIRED); return true; }
+            else if (mouseX >= columns.placedStart() && mouseX < columns.availableStart()){ setSortMode(SortMode.PLACED);   return true; }
+            else if (mouseX >= columns.availableStart() && mouseX < columns.missingStart()){ setSortMode(SortMode.STORED);   return true; }
+            else if (mouseX >= columns.missingStart() && mouseX < columns.checkboxStart()){ setSortMode(SortMode.MISSING);  return true; }
+            else if (mouseX >= columns.checkboxStart() && mouseX <= columns.checkboxEnd()){ setSortMode(SortMode.CHECKED); return true; }
         }
+        return false;
+    }
+
+    /** True when x falls in the ✔ checkbox column of any visible list section. */
+    private boolean isOverCheckboxColumn(double mouseX) {
+        LayoutMetrics metrics = getLayoutMetrics();
+        int loopCount = metrics.isSingleColumn() ? 1 : 2;
+        for (int i = 0; i < loopCount; i++) {
+            LayoutMetrics.Section section = metrics.entrySection(i);
+            LayoutMetrics.Columns columns = metrics.columns(section.x(), section.width());
+            if (mouseX >= columns.checkboxStart() && mouseX <= columns.checkboxEnd()) return true;
+        }
+        return false;
     }
 
     private void setSortMode(SortMode mode) {
